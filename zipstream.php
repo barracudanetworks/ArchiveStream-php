@@ -1,8 +1,37 @@
 <?php
 
+##########################################################################
+# ZipStream - Streamed, dynamically generated zip archives.              #
+# by Paul Duncan <pabs@pablotron.org>                                    #
+#                                                                        #
+# Copyright (C) 2007 Paul Duncan <pabs@pablotron.org>                    #
+#                                                                        #
+# Permission is hereby granted, free of charge, to any person obtaining  #
+# a copy of this software and associated documentation files (the        #
+# "Software"), to deal in the Software without restriction, including    #
+# without limitation the rights to use, copy, modify, merge, publish,    #
+# distribute, sublicense, and/or sell copies of the Software, and to     #
+# permit persons to whom the Software is furnished to do so, subject to  #
+# the following conditions:                                              #
+#                                                                        #
+# The above copyright notice and this permission notice shall be         #
+# included in all copies of the Software, its documentation and          #
+# marketing & publicity materials, and acknowledgment shall be given in  #
+# the documentation, materials and software packages that this Software  #
+# was used.                                                              #
+#                                                                        #
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,        #
+# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF     #
+# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. #
+# IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR      #
+# OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,  #
+# ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR  #
+# OTHER DEALINGS IN THE SOFTWARE.                                        #
+##########################################################################
+
 #
 # ZipStream - Streamed, dynamically generated zip archives.
-# Paul Duncan <pabs@pablotron.org>
+# by Paul Duncan <pabs@pablotron.org>
 #
 # Usage:
 #
@@ -27,8 +56,8 @@
 #     $zip->finish();
 #
 # You can also add an archive comment, add comments to individual files,
-# and adjust the timestamp of files.  See the API documentation below
-# for additional information.
+# and adjust the timestamp of files.  See the API documentation for each
+# method below for additional information.
 #
 # Example:
 #
@@ -179,6 +208,7 @@ class ZipStream {
   #   $zip->finish();
   # 
   function finish() {
+    # add trailing cdr record
     $this->add_cdr($this->opt);
     $this->clear();
   }
@@ -187,11 +217,17 @@ class ZipStream {
   # PRIVATE METHODS #
   ###################
 
+  #
+  # Save file attributes for trailing CDR record.
+  #
   function add_to_cdr($name, $opt, $crc, $zlen, $len, $rec_len) {
     $this->files[] = array($name, $opt, $crc, $zlen, $len, $this->ofs);
     $this->ofs += $rec_len;
   }
 
+  #
+  # Send CDR record for specified file.
+  #
   function add_cdr_file($args) {
     list ($name, $opt, $crc, $zlen, $len, $ofs) = $args;
 
@@ -229,6 +265,9 @@ class ZipStream {
     $this->cdr_ofs += strlen($ret);
   }
 
+  #
+  # Send CDR EOF (Central Directory Record End-of-File) record.
+  #
   function add_cdr_eof($opt = null) {
     $num = count($this->files);
     $cdr_len = $this->cdr_ofs;
@@ -254,22 +293,33 @@ class ZipStream {
     $this->send($ret);
   }
 
+  #
+  # Add CDR (Central Directory Record) footer.
+  #
   function add_cdr($opt = null) {
     foreach ($this->files as $file)
       $this->add_cdr_file($file);
     $this->add_cdr_eof($opt);
   }
 
+  #
+  # Clear all internal variables.  Note that the stream object is not
+  # usable after this.
+  #
   function clear() {
     $this->files = array();
     $this->ofs = 0;
     $this->cdr_ofs = 0;
+    $this->opt = array();
   }
 
   ###########################
   # PRIVATE UTILITY METHODS #
   ###########################
 
+  #
+  # Send HTTP headers for this stream.
+  #
   function send_http_headers() {
     # grab options
     $opt = $this->opt;
@@ -299,6 +349,9 @@ class ZipStream {
       header("$key: $val");
   }
 
+  #
+  # Send string, sending HTTP headers if necessary.
+  #
   function send($str) {
     if ($this->need_headers)
       $this->send_http_headers();
@@ -307,6 +360,9 @@ class ZipStream {
     echo $str;
   }
 
+  #
+  # Convert a UNIX timestamp to a DOS timestamp.
+  #
   function dostime($when = 0) {
     # get date array for timestamp
     $d = getdate($when);
@@ -325,6 +381,10 @@ class ZipStream {
            ($d['hours'] << 11) | ($d['minutes'] << 5) | ($d['seconds'] >> 1);
   }
 
+  #
+  # Create a format string and argument list for pack(), then call
+  # pack() and return the result.
+  #
   function pack_fields($fields) {
     list ($fmt, $args) = array('', array());
 
