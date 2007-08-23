@@ -61,8 +61,8 @@ class ZipStream {
       array('v', 0x14),           # version needed to extract
       array('v', 0x00),           # general purpose bit flag
       array('v', 0x08),           # compresion method (deflate)
-      array('v', 0x08),           # file mod time (dos) FIXME
-      array('v', 0x08),           # file mod date (dos) FIXME
+      array('v', 0x00),           # file mod time (dos) FIXME
+      array('v', 0x00),           # file mod date (dos) FIXME
       array('V', $crc),           # crc32 of data
       array('V', $zlen),          # compressed data length
       array('V', $len),           # uncompressed data length
@@ -72,10 +72,9 @@ class ZipStream {
 
     # pack fields
     $ret = $this->pack_fields($fields) . $name . $zdata;
-    $full_len = strlen($ret);
 
     # add to central directory record and increment offset
-    $this->add_to_cdr($name, $time, $crc, $zlen, $len, $full_len);
+    $this->add_to_cdr($name, $time, $crc, $zlen, $len, strlen($ret));
 
     # print data
     $this->send($ret);
@@ -116,9 +115,9 @@ class ZipStream {
   # PRIVATE METHODS #
   ###################
 
-  function add_to_cdr($name, $time, $crc, $zlen, $len, $full_len) {
+  function add_to_cdr($name, $time, $crc, $zlen, $len, $rec_len) {
     $this->files[] = array($name, $time, $crc32, $zlen, $len, $this->ofs);
-    $this->ofs += $full_len;
+    $this->ofs += $rec_len;
   }
 
   function add_cdr_file($args) {
@@ -160,7 +159,7 @@ class ZipStream {
 
     $fields = array(              # (from V,F of APPNOTE.TXT)
       array('V', 0x06054b50),     # end of central file header signature
-      array('v', 0x00),           # disk number
+      array('v', 0x00),           # this disk number
       array('v', 0x00),           # number of disk with cdr
       array('v', $num),           # number of entries in the cdr on this disk
       array('v', $num),           # number of entries in the cdr
