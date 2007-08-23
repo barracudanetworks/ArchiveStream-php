@@ -48,10 +48,10 @@ class ZipStream {
     $zdata = substr(gzcompress($data), 2, -4);
 
     # calculate header attributes
-    $crc  = crc32($data));
-    $zlen = strlen($zdata));
+    $crc  = crc32($data);
+    $zlen = strlen($zdata);
     $nlen = strlen($name);
-    $len  = strlen($data));
+    $len  = strlen($data);
 
     # TODO: create unix timestamp
 
