@@ -167,6 +167,9 @@ class ZipStream {
       array('V', $cdr_ofs),       # cdr ofs
       array('v', 0x00),           # zip file comment length
     );
+
+    $ret = $this->pack_fields($fields);
+    $this->send($ret);
   }
 
   function add_cdr() {
