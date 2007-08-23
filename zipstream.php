@@ -117,7 +117,7 @@ class ZipStream {
   ###################
 
   function add_to_cdr($name, $time, $crc, $zlen, $len, $full_len) {
-    $this->files[] = array($this->ofs, $name, $time, $crc32, $zlen, $len);
+    $this->files[] = array($name, $time, $crc32, $zlen, $len, $this->ofs);
     $this->ofs += $full_len;
   }
 
@@ -130,8 +130,8 @@ class ZipStream {
       array('v', 0x14),           # version needed to extract
       array('v', 0x00),           # general purpose bit flag
       array('v', 0x08),           # compresion method (deflate)
-      array('v', 0x08),           # file mod time (dos) FIXME
-      array('v', 0x08),           # file mod date (dos) FIXME
+      array('v', 0x00),           # file mod time (dos) FIXME
+      array('v', 0x00),           # file mod date (dos) FIXME
       array('V', $crc),           # crc32 of data
       array('V', $zlen),          # compressed data length
       array('V', $len),           # uncompressed data length
