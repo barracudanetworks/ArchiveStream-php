@@ -139,7 +139,7 @@ class ZipStream {
       array('v', 0),              # file comment length
       array('v', 0),              # disk number start
       array('v', 0),              # internal file attributes
-      array('V', 0),              # external file attributes
+      array('V', 32),             # external file attributes
       array('V', $ofs),           # relative offset of local header
     );
 
