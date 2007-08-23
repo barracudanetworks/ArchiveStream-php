@@ -54,7 +54,9 @@ class ZipStream {
     $nlen = strlen($name);
     $len  = strlen($data);
 
-    # TODO: create unix timestamp
+    # create dos timestamp
+    $time = $time ? $time : time();
+    $dts = $this->dostime($time);
 
     # build file header
     $fields = array(              # (from V.A of APPNOTE.TXT)
@@ -62,8 +64,9 @@ class ZipStream {
       array('v', 0x14),           # version needed to extract
       array('v', 0x00),           # general purpose bit flag
       array('v', 0x08),           # compresion method (deflate)
-      array('v', 0x00),           # file mod time (dos) FIXME
-      array('v', 0x00),           # file mod date (dos) FIXME
+      array('V', $dts),           # dos timestamp
+      # array('v', 0x00),           # file mod time (dos) FIXME
+      # array('v', 0x00),           # file mod date (dos) FIXME
       array('V', $crc),           # crc32 of data
       array('V', $zlen),          # compressed data length
       array('V', $len),           # uncompressed data length
@@ -94,8 +97,8 @@ class ZipStream {
   #   # write footer to stream
   #   $zs->finish();
   # 
-  function finish() {
-    $this->add_cdr();
+  function finish($opt = null) {
+    $this->add_cdr($opt);
     $this->clear();
   }
 
@@ -123,6 +126,7 @@ class ZipStream {
 
   function add_cdr_file($args) {
     list ($name, $time, $crc, $zlen, $len, $ofs) = $args;
+    $dts = $this->dostime($time);
 
     $fields = array(              # (from V,F of APPNOTE.TXT)
       array('V', 0x02014b50),     # central file header signature
@@ -130,8 +134,9 @@ class ZipStream {
       array('v', 0x14),           # version needed to extract
       array('v', 0x00),           # general purpose bit flag
       array('v', 0x08),           # compresion method (deflate)
-      array('v', 0x00),           # file mod time (dos) FIXME
-      array('v', 0x00),           # file mod date (dos) FIXME
+      array('V', $dts),           # dos timestamp
+      # array('v', 0x00),           # file mod time (dos) FIXME
+      # array('v', 0x00),           # file mod date (dos) FIXME
       array('V', $crc),           # crc32 of data
       array('V', $zlen),          # compressed data length
       array('V', $len),           # uncompressed data length
@@ -153,30 +158,35 @@ class ZipStream {
     $this->cdr_ofs += strlen($ret);
   }
 
-  function add_cdr_eof() {
+  function add_cdr_eof($opt = null) {
     $num = count($this->files);
     $cdr_len = $this->cdr_ofs;
     $cdr_ofs = $this->ofs;
 
-    $fields = array(              # (from V,F of APPNOTE.TXT)
-      array('V', 0x06054b50),     # end of central file header signature
-      array('v', 0x00),           # this disk number
-      array('v', 0x00),           # number of disk with cdr
-      array('v', $num),           # number of entries in the cdr on this disk
-      array('v', $num),           # number of entries in the cdr
-      array('V', $cdr_len),       # cdr size
-      array('V', $cdr_ofs),       # cdr ofs
-      array('v', 0x00),           # zip file comment length
+    # grab comment (if specified)
+    $comment = '';
+    if ($opt && $opt['comment'])
+      $comment = $opt['comment'];
+
+    $fields = array(                # (from V,F of APPNOTE.TXT)
+      array('V', 0x06054b50),         # end of central file header signature
+      array('v', 0x00),               # this disk number
+      array('v', 0x00),               # number of disk with cdr
+      array('v', $num),               # number of entries in the cdr on this disk
+      array('v', $num),               # number of entries in the cdr
+      array('V', $cdr_len),           # cdr size
+      array('V', $cdr_ofs),           # cdr ofs
+      array('v', strlen($comment)),   # zip file comment length
     );
 
-    $ret = $this->pack_fields($fields);
+    $ret = $this->pack_fields($fields) . $comment;
     $this->send($ret);
   }
 
-  function add_cdr() {
+  function add_cdr($opt = null) {
     foreach ($this->files as $file)
       $this->add_cdr_file($file);
-    $this->add_cdr_eof();
+    $this->add_cdr_eof($opt);
   }
 
   function clear() {
@@ -191,6 +201,15 @@ class ZipStream {
     $this->need_headers = false;
 
     echo $str;
+  }
+
+  function dostime($when = 0) {
+    $d = getdate($when);
+    if ($date['year'] < 1980)
+      $d = array('year' => 1980, 'mon' => 1, 'mday' => 1, 'hours' => 0, 'minutes' => 0, 'seconds' => 0);
+
+    return ($d['year'] << 25) | ($d['mon'] << 21) | ($d['mday'] << 16) |
+           ($d['hours'] << 11) | ($d['minutes'] << 5) | ($d['seconds'] >> 1;
   }
 
   function pack_fields($fields) {
