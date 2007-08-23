@@ -65,8 +65,6 @@ class ZipStream {
       array('v', 0x00),           # general purpose bit flag
       array('v', 0x08),           # compresion method (deflate)
       array('V', $dts),           # dos timestamp
-      # array('v', 0x00),           # file mod time (dos) FIXME
-      # array('v', 0x00),           # file mod date (dos) FIXME
       array('V', $crc),           # crc32 of data
       array('V', $zlen),          # compressed data length
       array('V', $len),           # uncompressed data length
@@ -135,8 +133,6 @@ class ZipStream {
       array('v', 0x00),           # general purpose bit flag
       array('v', 0x08),           # compresion method (deflate)
       array('V', $dts),           # dos timestamp
-      # array('v', 0x00),           # file mod time (dos) FIXME
-      # array('v', 0x00),           # file mod date (dos) FIXME
       array('V', $crc),           # crc32 of data
       array('V', $zlen),          # compressed data length
       array('V', $len),           # uncompressed data length
@@ -208,8 +204,10 @@ class ZipStream {
     $d = getdate($when);
 
     # set lower-bound on dates
-    if ($d['year'] < 1980)
-      $d = array('year' => 1980, 'mon' => 1, 'mday' => 1, 'hours' => 0, 'minutes' => 0, 'seconds' => 0);
+    if ($d['year'] < 1980) {
+      $d = array('year' => 1980, 'mon' => 1, 'mday' => 1, 
+                 'hours' => 0, 'minutes' => 0, 'seconds' => 0);
+    }
 
     # remove extra years from 1980
     $d['year'] -= 1980;
