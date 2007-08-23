@@ -209,7 +209,7 @@ class ZipStream {
       $d = array('year' => 1980, 'mon' => 1, 'mday' => 1, 'hours' => 0, 'minutes' => 0, 'seconds' => 0);
 
     return ($d['year'] << 25) | ($d['mon'] << 21) | ($d['mday'] << 16) |
-           ($d['hours'] << 11) | ($d['minutes'] << 5) | ($d['seconds'] >> 1;
+           ($d['hours'] << 11) | ($d['minutes'] << 5) | ($d['seconds'] >> 1);
   }
 
   function pack_fields($fields) {
