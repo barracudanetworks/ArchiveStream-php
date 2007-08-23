@@ -194,7 +194,7 @@ class ZipStream {
 
   function pack_fields($fields) {
     # populate format string and argument list
-    list ($pack_fmt, $args) = array('', array());
+    list ($fmt, $args) = array('', array());
     foreach ($fields as $field) {
       $fmt .= $field[0];
       $args[] = $field[1];
