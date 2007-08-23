@@ -204,10 +204,17 @@ class ZipStream {
   }
 
   function dostime($when = 0) {
+    # get date array for timestamp
     $d = getdate($when);
+
+    # set lower-bound on dates
     if ($d['year'] < 1980)
       $d = array('year' => 1980, 'mon' => 1, 'mday' => 1, 'hours' => 0, 'minutes' => 0, 'seconds' => 0);
 
+    # remove extra years from 1980
+    $d['year'] -= 1980;
+
+    # return date string
     return ($d['year'] << 25) | ($d['mon'] << 21) | ($d['mday'] << 16) |
            ($d['hours'] << 11) | ($d['minutes'] << 5) | ($d['seconds'] >> 1);
   }
