@@ -193,8 +193,9 @@ class ZipStream {
   }
 
   function pack_fields($fields) {
-    # populate format string and argument list
     list ($fmt, $args) = array('', array());
+
+    # populate format string and argument list
     foreach ($fields as $field) {
       $fmt .= $field[0];
       $args[] = $field[1];
@@ -204,7 +205,7 @@ class ZipStream {
     array_unshift($args, $fmt);
 
     # build output string from header and compressed data
-    return call_user_func('pack', $args);
+    return call_user_func_array('pack', $args);
   }
 };
 
