@@ -135,7 +135,7 @@ class ZipStream {
       array('V', $crc),           # crc32 of data
       array('V', $zlen),          # compressed data length
       array('V', $len),           # uncompressed data length
-      array('v', $nlen),          # filename length
+      array('v', strlen($name)),  # filename length
       array('v', 0),              # extra data len
       array('v', 0),              # file comment length
       array('v', 0),              # disk number start
