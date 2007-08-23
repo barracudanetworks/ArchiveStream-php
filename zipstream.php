@@ -24,6 +24,11 @@ class ZipStream {
       $cdr_ofs = 0,
       $ofs = 0; 
 
+  function ZipStream($name = 'untitled.zip', $send_http_headers = false) {
+    $this->output_name = $name;
+    $this->need_headers = $send_http_headers; 
+  }
+
   #
   # add_file - add a file to the archive
   #
@@ -73,7 +78,7 @@ class ZipStream {
     $this->add_to_cdr($name, $time, $crc, $zlen, $len, $full_len);
 
     # print data
-    echo $ret;
+    $this->send($ret);
   }
 
   #
@@ -94,12 +99,18 @@ class ZipStream {
     $this->clear();
   }
 
-  function clear() {
-    $this->files = array(0;
-    $this->ofs = 0;
-    $this->cdr_ofs = 0;
-  }
+  function send_http_headers($name = 'untitled.zip') {
+    $headers = array(
+      'Content-Type'              => 'application/x-zip',
+      'Content-Disposition'       => "attachment; filename=\"{$name}\"",
+      'Pragma'                    => 'public',
+      'Cache-Control'             => 'public, must-revalidate',
+      'Content-Transfer-Encoding' => 'binary',
+    );
 
+    foreach ($headers as $key => $val)
+      header("$key: $val");
+  }
 
   ###################
   # PRIVATE METHODS #
@@ -135,6 +146,8 @@ class ZipStream {
     # pack fields and append name
     $ret = $this->pack_fields($fields) . $name;
 
+    $this->send($ret);
+
     # increment cdr offset
     $this->cdr_ofs += strlen($ret);
   }
@@ -160,6 +173,20 @@ class ZipStream {
     foreach ($this->files as $file)
       $this->add_cdr_file($file);
     $this->add_cdr_eof();
+  }
+
+  function clear() {
+    $this->files = array();
+    $this->ofs = 0;
+    $this->cdr_ofs = 0;
+  }
+
+  function send($str) {
+    if ($this->need_headers)
+      $this->send_http_headers($this->output_name);
+    $this->need_headers = false;
+
+    echo $str;
   }
 
   function pack_fields($fields) {
