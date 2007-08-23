@@ -45,7 +45,8 @@ class ZipStream {
   # 
   function add_file($name, $data, $time = 0) {
     # compress data
-    $zdata = substr(gzcompress($data), 2, -4);
+    # $zdata = substr(gzcompress($data), 2, -4);
+    $zdata = gzdeflate($data);
 
     # calculate header attributes
     $crc  = crc32($data);
