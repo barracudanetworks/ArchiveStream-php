@@ -126,6 +126,7 @@ class ZipStream {
 
     $fields = array(              # (from V,F of APPNOTE.TXT)
       array('V', 0x02014b50),     # central file header signature
+      array('v', 0x00),           # version made by
       array('v', 0x14),           # version needed to extract
       array('v', 0x00),           # general purpose bit flag
       array('v', 0x08),           # compresion method (deflate)
