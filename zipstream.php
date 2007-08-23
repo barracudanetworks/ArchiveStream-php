@@ -116,12 +116,12 @@ class ZipStream {
   ###################
 
   function add_to_cdr($name, $time, $crc, $zlen, $len, $rec_len) {
-    $this->files[] = array($name, $time, $crc32, $zlen, $len, $this->ofs);
+    $this->files[] = array($name, $time, $crc, $zlen, $len, $this->ofs);
     $this->ofs += $rec_len;
   }
 
   function add_cdr_file($args) {
-    list ($name, $time, $crc32, $zlen, $len, $ofs) = $args;
+    list ($name, $time, $crc, $zlen, $len, $ofs) = $args;
 
     $fields = array(              # (from V,F of APPNOTE.TXT)
       array('V', 0x02014b50),     # central file header signature
