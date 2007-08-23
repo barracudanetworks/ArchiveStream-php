@@ -275,7 +275,7 @@ class ZipStream {
     $opt = $this->opt;
     
     # grab content type from options
-    $content_type = 'application/x-zip',
+    $content_type = 'application/x-zip';
     if ($opt['content_type'])
       $content_type = $this->opt['content_type'];
 
