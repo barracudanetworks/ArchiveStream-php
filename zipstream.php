@@ -205,7 +205,7 @@ class ZipStream {
 
   function dostime($when = 0) {
     $d = getdate($when);
-    if ($date['year'] < 1980)
+    if ($d['year'] < 1980)
       $d = array('year' => 1980, 'mon' => 1, 'mday' => 1, 'hours' => 0, 'minutes' => 0, 'seconds' => 0);
 
     return ($d['year'] << 25) | ($d['mon'] << 21) | ($d['mday'] << 16) |
