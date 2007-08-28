@@ -96,11 +96,41 @@ class ZipStream {
   #   content_disposition - HTTP Content-Disposition.  Defaults to 
   #                         'attachment; filename=\"FILENAME\"', where
   #                         FILENAME is the specified filename.
+  #   large_file_size     - Size, in bytes, of the largest file to try
+  #                         and load into memory (used by
+  #                         add_file_from_path()).  Large files may also
+  #                         be compressed differently; see the
+  #                         'large_file_method' option.
+  #   large_file_method   - How to handle large files.  Legal values are
+  #                         'store' (the default), or 'deflate'.  Store
+  #                         sends the file raw and is significantly
+  #                         faster, while 'deflate' compresses the file
+  #                         and is much, much slower.  Note that deflate
+  #                         must compress the file twice and extremely
+  #                         slow.
   #   send_http_headers   - Boolean indicating whether or not to send
   #                         the HTTP headers for this file.
   #
   # Note that content_type and content_disposition do nothing if you are
   # not sending HTTP headers.
+  #
+  # Large File Support:
+  #
+  # By default, the method add_file_from_path() will send send files
+  # larger than 20 megabytes along raw rather than attempting to
+  # compress them.  You can change both the maximum size and the
+  # compression behavior using the large_file_* options above, with the
+  # following caveats:
+  #
+  # * For "small" files (e.g. files smaller than large_file_size), the
+  #   memory use can be up to twice that of the actual file.  In other
+  #   words, adding a 10 megabyte file to the archive could potentially
+  #   occupty 20 megabytes of memory.
+  #
+  # * Enabling compression on large files (e.g. files larger than
+  #   large_file_size) is extremely slow, because ZipStream has to pass
+  #   over the large file once to calculate header information, and then
+  #   again to compress and send the actual data.
   #
   # Examples:
   #
@@ -121,6 +151,12 @@ class ZipStream {
   function ZipStream($name = null, $opt = array()) {
     # save options
     $this->opt = $opt;
+
+    # set large file defaults: size = 20 megabytes, method = store
+    if (!$this->opt['large_file_size'])
+      $this->opt['large_file_size'] = 20 * 1024 * 1024;
+    if (!$this->opt['large_file_method'])
+      $this->opt['large_file_method'] = 'store';
 
     $this->output_name = $name;
     if ($name || $opt['send_http_headers'])
@@ -163,35 +199,59 @@ class ZipStream {
     # calculate header attributes
     $crc  = crc32($data);
     $zlen = strlen($zdata);
-    $nlen = strlen($name);
     $len  = strlen($data);
+    $meth = 0x08;
 
-    # create dos timestamp
-    $opt['time'] = $opt['time'] ? $opt['time'] : time();
-    $dts = $this->dostime($opt['time']);
-
-    # build file header
-    $fields = array(              # (from V.A of APPNOTE.TXT)
-      array('V', 0x04034b50),     # local file header signature
-      array('v', 0x14),           # version needed to extract
-      array('v', 0x00),           # general purpose bit flag
-      array('v', 0x08),           # compresion method (deflate)
-      array('V', $dts),           # dos timestamp
-      array('V', $crc),           # crc32 of data
-      array('V', $zlen),          # compressed data length
-      array('V', $len),           # uncompressed data length
-      array('v', $nlen),          # filename length
-      array('v', 0),              # extra data len
-    );
-
-    # pack fields
-    $ret = $this->pack_fields($fields) . $name . $zdata;
-
-    # add to central directory record and increment offset
-    $this->add_to_cdr($name, $opt, $crc, $zlen, $len, strlen($ret));
+    # send file header
+    $this->add_file_header($name, $opt, $meth, $crc, $zlen, $len);
 
     # print data
-    $this->send($ret);
+    $this->send($zdata);
+  }
+
+  #
+  # add_file_from_path - add a file at path to the archive.
+  #
+  # Note that large files may be compresed differently than smaller
+  # files; see the "Large File Support" section above for more
+  # information.
+  #
+  # Parameters:
+  #   
+  #  $name - name of file in archive (including directory path).
+  #  $path - path to file on disk.
+  #  $opt  - Hash of options for file (optional, see "File Options"
+  #          below).  
+  #
+  # File Options: 
+  #  time     - Last-modified timestamp (seconds since the epoch) of
+  #             this file.  Defaults to the current time.
+  #  comment  - Comment related to this file.
+  #
+  # Examples:
+  #
+  #   # add a file named 'foo.txt' from the local file '/tmp/foo.txt'
+  #   $zip->add_file_from_path('foo.txt', '/tmp/foo.txt');
+  # 
+  #   # add a file named 'bigfile.rar' from the local file
+  #   # '/usr/share/bigfile.rar' with a comment and a last-modified
+  #   # time of two hours ago
+  #   $path = '/usr/share/bigfile.rar';
+  #   $zip->add_file_from_path('bigfile.rar', $path, array(
+  #     'time'    => time() - 2 * 3600,
+  #     'comment' => 'this is a comment about bar.jpg',
+  #   ));
+  # 
+  function add_file_from_path($name, $path, $opt = array()) {
+    if ($this->is_large_file($path)) {
+      # file is too large to be read into memory; add progressively
+      $this->add_large_file($name, $path, $opt);
+    } else {
+      # file is small enough to read into memory; read file contents and
+      # handle with add_file()
+      $data = file_get_contents($path);
+      $this->add_file($name, $data, $opt);
+    }
   }
 
   #
@@ -218,10 +278,112 @@ class ZipStream {
   ###################
 
   #
+  # Create and send zip header for this file.
+  #
+  function add_file_header($name, $opt, $meth, $crc, $zlen, $len) {
+    # calculate name length
+    $nlen = strlen($name);
+
+    # create dos timestamp
+    $opt['time'] = $opt['time'] ? $opt['time'] : time();
+    $dts = $this->dostime($opt['time']);
+
+    # build file header
+    $fields = array(            # (from V.A of APPNOTE.TXT)
+      array('V', 0x04034b50),     # local file header signature
+      array('v', 0x14),           # version needed to extract
+      array('v', 0x00),           # general purpose bit flag
+      array('v', $meth),          # compresion method (deflate or store)
+      array('V', $dts),           # dos timestamp
+      array('V', $crc),           # crc32 of data
+      array('V', $zlen),          # compressed data length
+      array('V', $len),           # uncompressed data length
+      array('v', $nlen),          # filename length
+      array('v', 0),              # extra data len
+    );
+
+    # pack fields and calculate "total" length
+    $ret = $this->pack_fields($fields);
+    $cdr_len = strlen($ret) + $nlen + $zlen;
+
+    # print header and filename
+    $this->send($ret . $name);
+
+    # add to central directory record and increment offset
+    $this->add_to_cdr($name, $opt, $meth, $crc, $zlen, $len, $cdr_len);
+  }
+
+  #
+  # Add a large file from the given path.
+  #
+  function add_large_file($name, $path, $opt = array()) {
+    $st = stat($path);
+    $block_size = 1048576; # process in 1 megabyte chunks
+
+    # calculate header attributes
+    $zlen = $len = $st['size'];
+
+    $meth_str = $this->opt['large_file_method'];
+    if ($meth_str == 'store') {
+      # store method
+      $meth = 0x00;
+      $crc  = hash_file('crc32', $path);
+    } elseif ($meth_str == 'deflate') {
+      # deflate method
+      $meth = 0x08;
+
+      # open file, calculate crc and compressed file length
+      $fh = fopen($path, 'rb');
+      $hash_ctx = hash_init('crc32');
+      $zlen = 0;
+
+      # read each block, update crc and zlen
+      while ($data = fgets($fh, $block_size)) {
+        hash_update($hash_ctx, $data);
+        $data = gzdeflate($data);
+        $zlen += strlen($data);
+      }
+
+      # close file and finalize crc
+      fclose($fh);
+      $crc = hash_final($hash_ctx);
+    } else {
+      die("unknown large_file_method: $meth_str");
+    }
+
+    # send file header
+    $this->add_file_header($name, $opt, $meth, $crc, $zlen, $len);
+
+    # open input file
+    $fh = fopen($path, 'rb');
+
+    # send file blocks
+    while ($data = fgets($fh, $block_size)) {
+      if ($meth_str == 'deflate') 
+        $data = gzdeflate($data);
+
+      # send data
+      $this->send($data);
+    }
+
+    # close input file
+    fclose($fh);
+  }
+
+  #
+  # Is this file larger than large_file_size?
+  #
+  function is_large_file($path) {
+    $st = stat($path);
+    return ($this->opt['large_file_size'] > 0) && 
+           ($st['size'] > $this->opt['large_file_size']);
+  }
+
+  #
   # Save file attributes for trailing CDR record.
   #
-  function add_to_cdr($name, $opt, $crc, $zlen, $len, $rec_len) {
-    $this->files[] = array($name, $opt, $crc, $zlen, $len, $this->ofs);
+  function add_to_cdr($name, $opt, $meth, $crc, $zlen, $len, $rec_len) {
+    $this->files[] = array($name, $opt, $meth, $crc, $zlen, $len, $this->ofs);
     $this->ofs += $rec_len;
   }
 
@@ -229,7 +391,7 @@ class ZipStream {
   # Send CDR record for specified file.
   #
   function add_cdr_file($args) {
-    list ($name, $opt, $crc, $zlen, $len, $ofs) = $args;
+    list ($name, $opt, $meth, $crc, $zlen, $len, $ofs) = $args;
 
     # get attributes
     $comment = $opt['comment'] ? $opt['comment'] : '';
@@ -237,12 +399,12 @@ class ZipStream {
     # get dos timestamp
     $dts = $this->dostime($opt['time']);
 
-    $fields = array(              # (from V,F of APPNOTE.TXT)
+    $fields = array(                  # (from V,F of APPNOTE.TXT)
       array('V', 0x02014b50),           # central file header signature
       array('v', 0x00),                 # version made by
       array('v', 0x14),                 # version needed to extract
       array('v', 0x00),                 # general purpose bit flag
-      array('v', 0x08),                 # compresion method (deflate)
+      array('v', $meth),                # compresion method (deflate or store)
       array('V', $dts),                 # dos timestamp
       array('V', $crc),                 # crc32 of data
       array('V', $zlen),                # compressed data length
