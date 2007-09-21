@@ -319,6 +319,7 @@ class ZipStream {
   function add_large_file($name, $path, $opt = array()) {
     $st = stat($path);
     $block_size = 1048576; # process in 1 megabyte chunks
+    $algo = 'crc32b';
 
     # calculate header attributes
     $zlen = $len = $st['size'];
@@ -327,14 +328,15 @@ class ZipStream {
     if ($meth_str == 'store') {
       # store method
       $meth = 0x00;
-      $crc  = hash_file('crc32', $path);
+      $crc  = unpack('V', hash_file($algo, $path, true));
+      $crc = $crc[1];
     } elseif ($meth_str == 'deflate') {
       # deflate method
       $meth = 0x08;
 
       # open file, calculate crc and compressed file length
       $fh = fopen($path, 'rb');
-      $hash_ctx = hash_init('crc32');
+      $hash_ctx = hash_init($algo);
       $zlen = 0;
 
       # read each block, update crc and zlen
@@ -346,7 +348,8 @@ class ZipStream {
 
       # close file and finalize crc
       fclose($fh);
-      $crc = hash_final($hash_ctx);
+      $crc = unpack('V', hash_final($hash_ctx, true));
+      $crc = $crc[1];
     } else {
       die("unknown large_file_method: $meth_str");
     }
