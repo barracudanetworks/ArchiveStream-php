@@ -21,7 +21,11 @@ simple example:
   $zip->finish();
 
 You can also add comments, modify file timestamps, and customize (or
-disable) the HTTP headers.  See the class file for details.
+disable) the HTTP headers.  See the class file for details.  There are a
+couple of additional examples in the initial release announcement at the
+following URL:
+
+  http://pablotron.org/?cid=1535
 
 About the Author
 ================
