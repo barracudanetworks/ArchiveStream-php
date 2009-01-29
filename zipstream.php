@@ -295,7 +295,7 @@ class ZipStream {
     # build file header
     $fields = array(            # (from V.A of APPNOTE.TXT)
       array('V', 0x04034b50),     # local file header signature
-      array('v', 63),           # version needed to extract
+      array('v', 63),             # version needed to extract
       array('v', 0x00),           # general purpose bit flag
       array('v', $meth),          # compresion method (deflate or store)
       array('V', $dts),           # dos timestamp
@@ -408,8 +408,8 @@ class ZipStream {
 
     $fields = array(                  # (from V,F of APPNOTE.TXT)
       array('V', 0x02014b50),           # central file header signature
-      array('v', 0x00),                 # version made by
-      array('v', 63),                 # version needed to extract
+      array('v', (3 << 8) & 63),        # version made by
+      array('v', 63),                   # version needed to extract
       array('v', 0x00),                 # general purpose bit flag
       array('v', $meth),                # compresion method (deflate or store)
       array('V', $dts),                 # dos timestamp
