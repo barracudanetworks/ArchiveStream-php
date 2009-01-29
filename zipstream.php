@@ -281,10 +281,9 @@ class ZipStream {
   # Create and send zip header for this file.
   #
   function add_file_header($name, $opt, $meth, $crc, $zlen, $len) {
-    # strip leading slash from file name
+    # strip leading slashes from file name
     # (fixes bug in windows archive viewer)
-    if ($name[0] == '/')
-      $name = substr($name, 1);
+    $name = preg_replace('/^\\/+/', '', $name)
 
     # calculate name length
     $nlen = strlen($name);
