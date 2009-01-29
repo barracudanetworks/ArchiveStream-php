@@ -4,7 +4,7 @@
 # ZipStream - Streamed, dynamically generated zip archives.              #
 # by Paul Duncan <pabs@pablotron.org>                                    #
 #                                                                        #
-# Copyright (C) 2007 Paul Duncan <pabs@pablotron.org>                    #
+# Copyright (C) 2007-2009 Paul Duncan <pabs@pablotron.org>               #
 #                                                                        #
 # Permission is hereby granted, free of charge, to any person obtaining  #
 # a copy of this software and associated documentation files (the        #
@@ -75,7 +75,7 @@
 #   $zip->finish();
 #
 class ZipStream {
-  static $VERSION = '0.1.2';
+  const VERSION = '0.1.2';
 
   var $opt = array(),
       $files = array(),
@@ -150,7 +150,7 @@ class ZipStream {
   # headers by default.  This behavior is to allow software to send its
   # own headers (including the filename), and still use this library.
   #
-  function ZipStream($name = null, $opt = array()) {
+  function __construct($name = null, $opt = array()) {
     # save options
     $this->opt = $opt;
 
@@ -283,7 +283,7 @@ class ZipStream {
   #
   # Create and send zip header for this file.
   #
-  function add_file_header($name, $opt, $meth, $crc, $zlen, $len) {
+  private function add_file_header($name, $opt, $meth, $crc, $zlen, $len) {
     # strip leading slashes from file name
     # (fixes bug in windows archive viewer)
     $name = preg_replace('/^\\/+/', '', $name);
@@ -323,7 +323,7 @@ class ZipStream {
   #
   # Add a large file from the given path.
   #
-  function add_large_file($name, $path, $opt = array()) {
+  private function add_large_file($name, $path, $opt = array()) {
     $st = stat($path);
     $block_size = 1048576; # process in 1 megabyte chunks
     $algo = 'crc32b';
@@ -392,7 +392,7 @@ class ZipStream {
   #
   # Save file attributes for trailing CDR record.
   #
-  function add_to_cdr($name, $opt, $meth, $crc, $zlen, $len, $rec_len) {
+  private function add_to_cdr($name, $opt, $meth, $crc, $zlen, $len, $rec_len) {
     $this->files[] = array($name, $opt, $meth, $crc, $zlen, $len, $this->ofs);
     $this->ofs += $rec_len;
   }
@@ -400,7 +400,7 @@ class ZipStream {
   #
   # Send CDR record for specified file.
   #
-  function add_cdr_file($args) {
+  private function add_cdr_file($args) {
     list ($name, $opt, $meth, $crc, $zlen, $len, $ofs) = $args;
 
     # get attributes
@@ -440,7 +440,7 @@ class ZipStream {
   #
   # Send CDR EOF (Central Directory Record End-of-File) record.
   #
-  function add_cdr_eof($opt = null) {
+  private function add_cdr_eof($opt = null) {
     $num = count($this->files);
     $cdr_len = $this->cdr_ofs;
     $cdr_ofs = $this->ofs;
@@ -468,7 +468,7 @@ class ZipStream {
   #
   # Add CDR (Central Directory Record) footer.
   #
-  function add_cdr($opt = null) {
+  private function add_cdr($opt = null) {
     foreach ($this->files as $file)
       $this->add_cdr_file($file);
     $this->add_cdr_eof($opt);
@@ -492,7 +492,7 @@ class ZipStream {
   #
   # Send HTTP headers for this stream.
   #
-  function send_http_headers() {
+  private function send_http_headers() {
     # grab options
     $opt = $this->opt;
     
@@ -524,7 +524,7 @@ class ZipStream {
   #
   # Send string, sending HTTP headers if necessary.
   #
-  function send($str) {
+  private function send($str) {
     if ($this->need_headers)
       $this->send_http_headers();
     $this->need_headers = false;
