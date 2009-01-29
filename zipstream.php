@@ -75,6 +75,8 @@
 #   $zip->finish();
 #
 class ZipStream {
+  static $VERSION = '0.1.2';
+
   var $opt = array(),
       $files = array(),
       $cdr_ofs = 0,
