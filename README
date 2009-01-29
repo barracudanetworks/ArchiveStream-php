@@ -1,4 +1,4 @@
-ZipStream 0.1.2 README
+ZipStream 0.2.0 README
 ======================
 
 Please see the file COPYING for licensing and warranty information.  The
@@ -26,6 +26,12 @@ couple of additional examples in the initial release announcement at the
 following URL:
 
   http://pablotron.org/?cid=1535
+
+Requirements
+============
+
+  * PHP version 5.1.2 or newer (specifically, the hash_init and
+    hash_file functions).
 
 About the Author
 ================

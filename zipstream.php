@@ -33,6 +33,10 @@
 # ZipStream - Streamed, dynamically generated zip archives.
 # by Paul Duncan <pabs@pablotron.org>
 #
+# Requirements:
+#
+# * PHP version 5.1.2 or newer.
+#
 # Usage:
 #
 # Streaming zip archives is a simple, three-step process:
@@ -75,7 +79,7 @@
 #   $zip->finish();
 #
 class ZipStream {
-  const VERSION = '0.1.2';
+  const VERSION = '0.2.0';
 
   var $opt = array(),
       $files = array(),
