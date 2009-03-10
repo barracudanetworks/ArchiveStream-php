@@ -79,7 +79,7 @@
 #   $zip->finish();
 #
 class ZipStream {
-  const VERSION = '0.2.0';
+  const VERSION = '0.2.1';
 
   var $opt = array(),
       $files = array(),
