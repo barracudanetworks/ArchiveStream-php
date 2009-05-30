@@ -1,4 +1,4 @@
-ZipStream 0.2.1 README
+ZipStream 0.2.2 README
 ======================
 
 Please see the file COPYING for licensing and warranty information.  The
@@ -11,21 +11,21 @@ Overview
 A fast and simple streaming zip file downloader for PHP.  Here's a
 simple example:
 
-  # create a new zipstream object
-  $zip = new ZipStream('example.zip');
+    # create a new zipstream object
+    $zip = new ZipStream('example.zip');
 
-  # add a file named 'image.jpg'
-  $zip->add_file('image.jpg', file_get_contents('image.jpg'));
+    # add a file named 'image.jpg'
+    $zip->add_file('image.jpg', file_get_contents('image.jpg'));
 
-  # finish the zip stream
-  $zip->finish();
+    # finish the zip stream
+    $zip->finish();
 
 You can also add comments, modify file timestamps, and customize (or
 disable) the HTTP headers.  See the class file for details.  There are a
 couple of additional examples in the initial release announcement at the
 following URL:
 
-  http://pablotron.org/?cid=1535
+    http://pablotron.org/?cid=1535
 
 Requirements
 ============

@@ -15,10 +15,7 @@
 # the following conditions:                                              #
 #                                                                        #
 # The above copyright notice and this permission notice shall be         #
-# included in all copies of the Software, its documentation and          #
-# marketing & publicity materials, and acknowledgment shall be given in  #
-# the documentation, materials and software packages that this Software  #
-# was used.                                                              #
+# included in all copies or substantial portions of the of the Software. #
 #                                                                        #
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,        #
 # EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF     #
@@ -79,7 +76,7 @@
 #   $zip->finish();
 #
 class ZipStream {
-  const VERSION = '0.2.1';
+  const VERSION = '0.2.2';
 
   var $opt = array(),
       $files = array(),
