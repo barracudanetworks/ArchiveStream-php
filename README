@@ -14,8 +14,11 @@ simple example:
     # create a new zipstream object
     $zip = new ZipStream('example.zip');
 
-    # add a file named 'image.jpg'
-    $zip->add_file('image.jpg', file_get_contents('image.jpg'));
+    # create a file named 'hello.txt' 
+    $zip->add_file('some_image.jpg', 'This is the contents of hello.txt');
+
+    # add a file named 'image.jpg' from a local file 'path/to/image.jpg'
+    $zip->add_file_from_path('some_image.jpg', 'path/to/image.jpg');
 
     # finish the zip stream
     $zip->finish();
