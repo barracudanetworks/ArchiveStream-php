@@ -156,13 +156,13 @@ class ZipStream {
     $this->opt = $opt;
 
     # set large file defaults: size = 20 megabytes, method = store
-    if (!$this->opt['large_file_size'])
+    if (!isset($this->opt['large_file_size']))
       $this->opt['large_file_size'] = 20 * 1024 * 1024;
-    if (!$this->opt['large_file_method'])
+    if (!isset($this->opt['large_file_method']))
       $this->opt['large_file_method'] = 'store';
 
     $this->output_name = $name;
-    if ($name || $opt['send_http_headers'])
+    if ($name || isset($opt['send_http_headers']))
       $this->need_headers = true; 
   }
 
@@ -247,15 +247,15 @@ class ZipStream {
   #   ));
   # 
   function add_file_from_path($name, $path, $opt = array()) {
-    if ($this->is_large_file($path)) {
+    // if ($this->is_large_file($path)) {
       # file is too large to be read into memory; add progressively
       $this->add_large_file($name, $path, $opt);
-    } else {
+    // } else {
       # file is small enough to read into memory; read file contents and
       # handle with add_file()
-      $data = file_get_contents($path);
-      $this->add_file($name, $data, $opt);
-    }
+      // $data = file_get_contents($path);
+      // $this->add_file($name, $data, $opt);
+    // }
   }
 
   #
@@ -293,13 +293,13 @@ class ZipStream {
     $nlen = strlen($name);
 
     # create dos timestamp
-    $opt['time'] = $opt['time'] ? $opt['time'] : time();
+    $opt['time'] = isset($opt['time']) ? $opt['time'] : time();
     $dts = $this->dostime($opt['time']);
 
     # build file header
-    $fields = array(            # (from V.A of APPNOTE.TXT)
+    $fields = array(              # (from V.A of APPNOTE.TXT)
       array('V', 0x04034b50),     # local file header signature
-      array('v', (6 << 8) + 3),   # version needed to extract
+      array('v', 20),             # version needed to extract
       array('v', 0x00),           # general purpose bit flag
       array('v', $meth),          # compresion method (deflate or store)
       array('V', $dts),           # dos timestamp
@@ -336,8 +336,7 @@ class ZipStream {
     if ($meth_str == 'store') {
       # store method
       $meth = 0x00;
-      $crc  = unpack('V', hash_file($algo, $path, true));
-      $crc = $crc[1];
+      $crc = hexdec(hash_file($algo, $path));
     } elseif ($meth_str == 'deflate') {
       # deflate method
       $meth = 0x08;
@@ -375,6 +374,9 @@ class ZipStream {
 
       # send data
       $this->send($data);
+
+      ob_flush();
+      flush();
     }
 
     # close input file
@@ -405,7 +407,7 @@ class ZipStream {
     list ($name, $opt, $meth, $crc, $zlen, $len, $ofs) = $args;
 
     # get attributes
-    $comment = $opt['comment'] ? $opt['comment'] : '';
+    $comment = isset($opt['comment']) ? $opt['comment'] : '';
 
     # get dos timestamp
     $dts = $this->dostime($opt['time']);
@@ -448,7 +450,7 @@ class ZipStream {
 
     # grab comment (if specified)
     $comment = '';
-    if ($opt && $opt['comment'])
+    if ($opt && isset($opt['comment']))
       $comment = $opt['comment'];
 
     $fields = array(                # (from V,F of APPNOTE.TXT)
@@ -499,12 +501,12 @@ class ZipStream {
     
     # grab content type from options
     $content_type = 'application/x-zip';
-    if ($opt['content_type'])
+    if (isset($opt['content_type']))
       $content_type = $this->opt['content_type'];
 
     # grab content disposition 
     $disposition = 'attachment';
-    if ($opt['content_disposition'])
+    if (isset($opt['content_disposition']))
       $disposition = $opt['content_disposition'];
 
     if ($this->output_name) 
@@ -574,5 +576,3 @@ class ZipStream {
     return call_user_func_array('pack', $args);
   }
 };
-
-?>
