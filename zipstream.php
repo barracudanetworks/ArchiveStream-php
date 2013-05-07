@@ -1,85 +1,34 @@
 <?php
-
 /**
- *#########################################################################
- * ZipStream - Streamed, dynamically generated zip archives.              #
- * by Paul Duncan <pabs@pablotron.org>                                    #
- *                                                                        #
- * Copyright (C) 2007-2009 Paul Duncan <pabs@pablotron.org>               #
- *                                                                        #
- * Permission is hereby granted, free of charge, to any person obtaining  #
- * a copy of this software and associated documentation files (the        #
- * "Software"), to deal in the Software without restriction, including    #
- * without limitation the rights to use, copy, modify, merge, publish,    #
- * distribute, sublicense, and/or sell copies of the Software, and to     #
- * permit persons to whom the Software is furnished to do so, subject to  #
- * the following conditions:                                              #
- *                                                                        #
- * The above copyright notice and this permission notice shall be         #
- * included in all copies or substantial portions of the of the Software. #
- *                                                                        #
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,        #
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF     #
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. #
- * IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR      #
- * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,  #
- * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR  #
- * OTHER DEALINGS IN THE SOFTWARE.                                        #
- *#########################################################################
- *
- * 
  * ZipStream - Streamed, dynamically generated zip archives.
- * by Paul Duncan <pabs@pablotron.org>
+ * Paul Duncan - Original author
+ * 
+ * Original work Copyright 2007-2009 Paul Duncan <pabs@pablotron.org>
+ * Modified work Copyright 2013 Barracuda Networks, Inc.
  * 
  * Requirements:
- * 
  * * PHP version 5.1.2 or newer.
  * 
- * Usage:
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
  * 
- * Streaming zip archives is a simple, three-step process:
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
  * 
- * 1.  Create the zip stream:
- * 
- *     $zip = new ZipStream('example.zip');
- * 
- * 2.  Add one or more files to the archive:
- * 
- *     // add first file
- *     $data = file_get_contents('some_file.gif');
- *     $zip->add_file('some_file.gif', $data);
- * 
- *     // add second file
- *     $data = file_get_contents('some_file.gif');
- *     $zip->add_file('another_file.png', $data);
- * 
- * 3.  Finish the zip stream:
- * 
- *     $zip->finish();
- * 
- * You can also add an archive comment, add comments to individual files,
- * and adjust the timestamp of files.  See the API documentation for each
- * method below for additional information.
- * 
- * Example:
- * 
- *   // create a new zip stream object
- *   $zip = new ZipStream('some_files.zip');
- * 
- *   // list of local files
- *   $files = array('foo.txt', 'bar.jpg');
- * 
- *   // read and add each file to the archive
- *   foreach ($files as $path)
- *     $zip->add_file($path, file_get_contents($path));
- * 
- *   // write archive footer to stream
- *   $zip->finish();
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
  */
 class ZipStream
 {
-	const VERSION = '0.2.2';
-
 	var $opt = array(),
 		$files = array(),
 		$cdr_ofs = 0,
@@ -115,6 +64,8 @@ class ZipStream
 	 *                         slow.
 	 *   send_http_headers   - Boolean indicating whether or not to send
 	 *                         the HTTP headers for this file.
+	 *   large_files_only   -  Boolean indicating whether or not to assume 
+	 *                         that all files we are sending are large.
 	 *
 	 * Note that content_type and content_disposition do nothing if you are
 	 * not sending HTTP headers.
@@ -164,6 +115,8 @@ class ZipStream
 			$this->opt['large_file_size'] = 20 * 1024 * 1024;
 		if ( !isset($this->opt['large_file_method']) )
 			$this->opt['large_file_method'] = 'store';
+		if ( !isset($this->opt['large_files_only']) )
+			$this->opt['large_files_only'] = true;
 
 		$this->output_name = $name;
 		if ( $name || isset($opt['send_http_headers']) )
@@ -253,15 +206,91 @@ class ZipStream
 	 */
 	function add_file_from_path( $name, $path, $opt = array() )
 	{
-		// if ($this->is_large_file($path)) {
+		if ( $this->opt['large_files_only'] || $this->is_large_file($path) ) {
 			// file is too large to be read into memory; add progressively
 			$this->add_large_file($name, $path, $opt);
-		// } else {
+		} else {
 			// file is small enough to read into memory; read file contents and
 			// handle with add_file()
-			// $data = file_get_contents($path);
-			// $this->add_file($name, $data, $opt);
-		// }
+			$data = file_get_contents($path);
+			$this->add_file($name, $data, $opt);
+		}
+	}
+
+	/**
+ 	 * Use this method when you want to transfer a large file as the parts are coming in from the cloud
+ 	 */
+	function init_file_stream_transfer( $name, $opt = array() )
+	{
+		$algo = 'crc32b';
+
+		// calculate header attributes
+		$this->zlen = $this->len = 0;
+		$this->hash_ctx = hash_init($algo);
+
+		$this->meth_str = $this->opt['large_file_method'];
+		if ( $this->meth_str == 'store' ) {
+			// store method
+			$meth = 0x00;
+		} elseif ( $this->meth_str == 'deflate' ) {
+			// deflate method
+			$meth = 0x08;
+		} else {
+			die("unknown large_file_method: $this->meth_str");
+		}
+
+		// Send file header
+		$this->add_stream_file_header($name, $opt, $meth);
+	}
+
+	/**
+	 * Stream a part of a file.
+	 * Parts are stored as files on disk for now
+	 * TODO: Add ability to read from resource, where resource could be memory or disk
+	 */
+	function stream_file_part( $data )
+	{
+		$this->len += strlen($data);
+		hash_update($this->hash_ctx, $data);
+
+		if ( $this->meth_str == 'deflate' )
+			$data = gzdeflate($data);
+
+		$this->zlen += strlen($data);
+
+		// send data
+		$this->send($data);
+		ob_flush();
+		flush();
+	}
+
+	function complete_file_stream()
+	{
+		$crc = hexdec(hash_final($this->hash_ctx));
+
+		// build data descriptor
+		$fields = array(                // (from V.A of APPNOTE.TXT)
+			array('V', 0x08074b50),     // data descriptor
+			array('V', $crc),           // crc32 of data
+			array('V', $this->zlen),    // compressed data length
+			array('V', $this->len),     // uncompressed data length
+		);
+
+		// pack fields and calculate "total" length
+		$ret = $this->pack_fields($fields);
+
+		// print header and filename
+		$this->send($ret);
+
+		// Update cdr for file record
+		$this->current_file_stream[3] = $crc;
+		$this->current_file_stream[4] = $this->zlen;
+		$this->current_file_stream[5] = $this->len;
+		$this->current_file_stream[6] += strlen($ret) + $this->zlen;
+		ksort($this->current_file_stream);
+
+		// Add to cdr and increment offset
+		call_user_func_array(array($this, 'add_to_cdr'), $this->current_file_stream);
 	}
 
 	/**
@@ -327,6 +356,43 @@ class ZipStream
 
 		// add to central directory record and increment offset
 		$this->add_to_cdr($name, $opt, $meth, $crc, $zlen, $len, $cdr_len);
+	}
+
+	private function add_stream_file_header( $name, $opt, $meth )
+	{
+		// strip leading slashes from file name
+		// (fixes bug in windows archive viewer)
+		$name = preg_replace('/^\\/+/', '', $name);
+
+		// calculate name length
+		$nlen = strlen($name);
+
+		// create dos timestamp
+		$opt['time'] = isset($opt['time']) ? $opt['time'] : time();
+		$dts = $this->dostime($opt['time']);
+
+		// build file header
+		$fields = array(                // (from V.A of APPNOTE.TXT)
+			array('V', 0x04034b50),     // local file header signature
+			array('v', 20),             // version needed to extract
+			array('v', 0x0808),         // general purpose bit flag
+			array('v', $meth),          // compresion method (deflate or store)
+			array('V', $dts),           // dos timestamp
+			array('V', 0x00),           // crc32 of data
+			array('V', 0x00),           // compressed data length
+			array('V', 0x00),           // uncompressed data length
+			array('v', $nlen),          // filename length
+			array('v', 0),              // extra data len
+		);
+
+		// pack fields and calculate "total" length
+		$ret = $this->pack_fields($fields);
+
+		// print header and filename
+		$this->send($ret . $name);
+
+		// Keep track of data for central directory record
+		$this->current_file_stream = array($name, $opt, $meth, 6 => (strlen($ret) + $nlen));
 	}
 
 	/**
@@ -563,7 +629,7 @@ class ZipStream
 		// set lower-bound on dates
 		if ($d['year'] < 1980) {
 			$d = array('year' => 1980, 'mon' => 1, 'mday' => 1,
-								 'hours' => 0, 'minutes' => 0, 'seconds' => 0);
+				'hours' => 0, 'minutes' => 0, 'seconds' => 0);
 		}
 
 		// remove extra years from 1980
@@ -571,7 +637,7 @@ class ZipStream
 
 		// return date string
 		return ($d['year'] << 25) | ($d['mon'] << 21) | ($d['mday'] << 16) |
-					 ($d['hours'] << 11) | ($d['minutes'] << 5) | ($d['seconds'] >> 1);
+				($d['hours'] << 11) | ($d['minutes'] << 5) | ($d['seconds'] >> 1);
 	}
 
 	/**
