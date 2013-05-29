@@ -35,7 +35,7 @@ $zip = new ZipStream('example.zip');
 $zip->init_file_stream_transfer('some_image.jpg');
 
 // Stream part of the contents of som_image.jpg
-// This method should be called as many times as needed to send all of it's data
+// This method should be called as many times as needed to send all of its data
 $zip->stream_file_part($data);
 
 // Send data descriptor header for file
