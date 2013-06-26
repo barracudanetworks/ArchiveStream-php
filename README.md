@@ -14,10 +14,10 @@ simple example:
 $zip = new ZipStream('example.zip');
 
 // Create a file named 'hello.txt' 
-$zip->add_file('some_image.jpg', 'This is the contents of hello.txt');
+$zip->add_file('hello.txt', 'This is the contents of hello.txt');
 
 // Add a file named 'image.jpg' from a local file 'path/to/image.jpg'
-$zip->add_file_from_path('some_image.jpg', 'path/to/image.jpg');
+$zip->add_file_from_path('image.jpg', 'path/to/image.jpg');
 
 // Finish the zip stream
 $zip->finish();
@@ -34,7 +34,7 @@ $zip = new ZipStream('example.zip');
 // Initiate the stream transfer of some_image.jpg
 $zip->init_file_stream_transfer('some_image.jpg');
 
-// Stream part of the contents of som_image.jpg
+// Stream part of the contents of some_image.jpg
 // This method should be called as many times as needed to send all of its data
 $zip->stream_file_part($data);
 

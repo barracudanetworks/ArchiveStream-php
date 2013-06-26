@@ -374,12 +374,13 @@ class ZipStream
 		// create dos timestamp
 		$opt['time'] = isset($opt['time']) ? $opt['time'] : time();
 		$dts = $this->dostime($opt['time']);
+		$genb = 0x0808;
 
 		// build file header
 		$fields = array(                // (from V.A of APPNOTE.TXT)
 			array('V', 0x04034b50),     // local file header signature
 			array('v', 20),             // version needed to extract
-			array('v', 0x0808),         // general purpose bit flag
+			array('v', $genb),          // general purpose bit flag
 			array('v', $meth),          // compresion method (deflate or store)
 			array('V', $dts),           // dos timestamp
 			array('V', 0x00),           // crc32 of data
@@ -396,7 +397,7 @@ class ZipStream
 		$this->send($ret . $name);
 
 		// Keep track of data for central directory record
-		$this->current_file_stream = array($name, $opt, $meth, 6 => (strlen($ret) + $nlen));
+		$this->current_file_stream = array($name, $opt, $meth, 6 => (strlen($ret) + $nlen), 7 => $genb);
 	}
 
 	/**
@@ -475,9 +476,9 @@ class ZipStream
 	/**
 	 * Save file attributes for trailing CDR record.
 	 */
-	private function add_to_cdr( $name, $opt, $meth, $crc, $zlen, $len, $rec_len )
+	private function add_to_cdr( $name, $opt, $meth, $crc, $zlen, $len, $rec_len, $genb = 0 )
 	{
-		$this->files[] = array($name, $opt, $meth, $crc, $zlen, $len, $this->ofs);
+		$this->files[] = array($name, $opt, $meth, $crc, $zlen, $len, $this->ofs, $genb);
 		$this->ofs += $rec_len;
 	}
 
@@ -486,7 +487,7 @@ class ZipStream
 	 */
 	private function add_cdr_file( $args )
 	{
-		list ($name, $opt, $meth, $crc, $zlen, $len, $ofs) = $args;
+		list ($name, $opt, $meth, $crc, $zlen, $len, $ofs, $genb) = $args;
 
 		// get attributes
 		$comment = isset($opt['comment']) ? $opt['comment'] : '';
@@ -498,7 +499,7 @@ class ZipStream
 			array('V', 0x02014b50),           // central file header signature
 			array('v', (6 << 8) + 3),         // version made by
 			array('v', (6 << 8) + 3),         // version needed to extract
-			array('v', 0x00),                 // general purpose bit flag
+			array('v', $genb),                // general purpose bit flag
 			array('v', $meth),                // compresion method (deflate or store)
 			array('V', $dts),                 // dos timestamp
 			array('V', $crc),                 // crc32 of data
