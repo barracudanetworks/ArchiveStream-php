@@ -1,10 +1,11 @@
 <?php
 
-// load zipstream class
-require '../zipstream.php';
-
 // get path to current file
 $pwd = dirname(__FILE__);
+
+// load zipstream class
+require $pwd . '/../zipstream.php';
+require $pwd . '/../tarstream.php';
 
 // add some random files
 $files = array(
@@ -13,7 +14,7 @@ $files = array(
 );
 
 // create new zip stream object
-$zip = new ZipStream('test.zip', array(
+$zip = new ArchiveStream_Zip('test.zip', array(
   'comment' => 'this is a zip file comment.  hello?'
 ));
 
@@ -30,21 +31,13 @@ $file_opt = array(
 foreach ($files as $file) {
   // build absolute path and get file data
   $path = ($file[0] == '/') ? $file : "$pwd/$file";
-  $data = file_get_contents($path);
 
   // add file to archive
-  $zip->add_file('asdf/' . basename($file), $data, $file_opt);
+  $zip->add_file_from_path('asdf/' . basename($file), $path, $file_opt);
 }
 
-// add same files again wihtout a folder
-foreach ($files as $file) {
-  // build absolute path and get file data
-  $path = ($file[0] == '/') ? $file : "$pwd/$file";
-  $data = file_get_contents($path);
-
-  // add file to archive
-  $zip->add_file(basename($file), $data, $file_opt);
-}
+// add a long file name
+$zip->add_file('/long/' . str_repeat('a', 200) . '.txt', 'test');
 
 // finish archive
 $zip->finish();
