@@ -4,7 +4,7 @@ A library for dynamically streaming dynamic zip files without the need to have t
 
 ## Options
 
-``php
+```php
 /**
  * Parameters:
  *
