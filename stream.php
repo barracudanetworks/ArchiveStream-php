@@ -40,12 +40,14 @@ class ArchiveStream
 		// detect windows and use zip
 		if (strpos($user_agent, 'windows') !== false)
 		{
+			require_once(__DIR__ . '/zipstream.php');
 			$filename = (($base_filename === null) ? null : $base_filename . '.zip');
 			return new ArchiveStream_Zip($filename, $opt);
 		}
 		// fallback to tar
 		else
 		{
+			require_once(__DIR__ . '/tarstream.php');
 			$filename = (($base_filename === null) ? null : $base_filename . '.tar');
 			return new ArchiveStream_Tar($filename, $opt);
 		}
