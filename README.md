@@ -1,12 +1,12 @@
 # ZipStream 0.2.4
 
-A library for dynamically streaming dynamic zip files without the need to have the complete file stored on the server.
+A library for dynamically streaming dynamic tar or zip files without the need to have the complete file stored on the server.  You can specify if you want tar or zip, or have the library figure out the best option based on the user agent string.
 
 ## Options
 
 ```php
 /**
- * Parameters:
+ * Construct Parameters:
  *
  *   $name - Name of output file (optional).
  *   $opt  - Hash of archive options (optional, see "Archive Options"
@@ -71,8 +71,11 @@ A library for dynamically streaming dynamic zip files without the need to have t
 A fast and simple streaming zip file downloader for PHP.  Here's a simple example:
 
 ```php
-// Create a new zipstream object
-$zip = new ZipStream('example.zip');
+// Create a new
+
+```php
+// Create a new archive stream object (tar or zip depending on user agent)
+$zip = ArchiveStream::instance_by_useragent('example');
 
 // Create a file named 'hello.txt'
 $zip->add_file('hello.txt', 'This is the contents of hello.txt');
@@ -89,8 +92,8 @@ $zip->finish();
 This method can be used to serve files of any size (GB, TB).
 
 ```php
-// Create a new zipstream object
-$zip = new ZipStream('example.zip');
+// Create a new archive stream object (tar or zip depending on user agent)
+$zip = ArchiveStream::instance_by_useragent('example');
 
 // Initiate the stream transfer of some_image.jpg with size 324134
 $zip->init_file_stream_transfer('some_image.jpg', 324134);
