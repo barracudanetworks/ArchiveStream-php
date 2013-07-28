@@ -129,7 +129,7 @@ disable) the HTTP headers.  See the class file for details.
 
 ## License
 
-Original work Copyright 2007-2009 Paul Duncan <pabs@pablotron.org>
+Original work Copyright 2007-2009 Paul Duncan <pabs@pablotron.org>  
 Modified work Copyright 2013 Barracuda Networks, Inc.
 
 Licensed under the MIT License
