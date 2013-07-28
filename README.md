@@ -71,9 +71,6 @@ A library for dynamically streaming dynamic tar or zip files without the need to
 A fast and simple streaming zip file downloader for PHP.  Here's a simple example:
 
 ```php
-// Create a new
-
-```php
 // Create a new archive stream object (tar or zip depending on user agent)
 $zip = ArchiveStream::instance_by_useragent('example');
 
