@@ -1,4 +1,4 @@
-# ZipStream 0.2.4
+# ArchiveStream 0.2.4
 
 A library for dynamically streaming dynamic tar or zip files without the need to have the complete file stored on the server.  You can specify if you want tar or zip, or have the library figure out the best option based on the user agent string.
 
@@ -68,7 +68,7 @@ A library for dynamically streaming dynamic tar or zip files without the need to
 
 ### Stream whole file at a time
 
-A fast and simple streaming zip file downloader for PHP.  Here's a simple example:
+A fast and simple streaming archive files for PHP.  Here's a simple example:
 
 ```php
 // Create a new archive stream object (tar or zip depending on user agent)
@@ -129,7 +129,7 @@ disable) the HTTP headers.  See the class file for details.
 
 ## License
 
-Original work Copyright 2007-2009 Paul Duncan <pabs@pablotron.org>  
+Original work Copyright 2007-2009 Paul Duncan <pabs@pablotron.org>
 Modified work Copyright 2013 Barracuda Networks, Inc.
 
 Licensed under the MIT License
