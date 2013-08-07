@@ -15,8 +15,8 @@ class ArchiveStream_Tar extends ArchiveStream
 	 */
 	public function __construct()
 	{
-		$this->opt['content_type'] = 'application/x-tar';
 		call_user_func_array(array('parent', '__construct'), func_get_args());
+		$this->opt['content_type'] = 'application/x-tar';
 	}
 
 	/**

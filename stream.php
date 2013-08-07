@@ -162,9 +162,10 @@ class ArchiveStream
 		$opt = $this->opt;
 
 		// grab content type from options
-		$content_type = 'application/x-zip';
 		if ( isset($opt['content_type']) )
-			$content_type = $this->opt['content_type'];
+			$content_type = $opt['content_type'];
+		else
+			$content_type = 'application/x-zip';
 
 		// grab content disposition
 		$disposition = 'attachment';
