@@ -167,6 +167,10 @@ class ArchiveStream
 		else
 			$content_type = 'application/x-zip';
 
+		// grab content type encoding from options and append to the content type option
+		if ( isset($opt['content_type_encoding']) )
+			$content_type .= '; charset=' . $opt['content_type_encoding'];
+
 		// grab content disposition
 		$disposition = 'attachment';
 		if ( isset($opt['content_disposition']) )
