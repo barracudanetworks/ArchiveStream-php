@@ -67,7 +67,6 @@ class ArchiveStream_Zip extends ArchiveStream
 
 		// send data
 		$this->send($data);
-		@ob_flush();
 		flush();
 	}
 

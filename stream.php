@@ -23,6 +23,12 @@ class ArchiveStream
 		$this->output_name = $name;
 		if ( $name || isset($opt['send_http_headers']) )
 			$this->need_headers = true;
+
+		// turn off output buffering
+		while (ob_get_level() > 0)
+		{
+			ob_end_flush();
+		}
 	}
 
 	/**

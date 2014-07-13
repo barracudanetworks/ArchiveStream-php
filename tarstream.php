@@ -99,7 +99,6 @@ class ArchiveStream_Tar extends ArchiveStream
 		$this->send($data);
 
 		// flush the data to the output
-		@ob_flush();
 		flush();
 	}
 
@@ -115,7 +114,6 @@ class ArchiveStream_Tar extends ArchiveStream
 			$this->send( pack('a' . (512 - $mod) , '') );
 
 		// flush the data to the output
-		@ob_flush();
 		flush();
 	}
 
@@ -130,7 +128,6 @@ class ArchiveStream_Tar extends ArchiveStream
 		$this->send( pack('a1024', '') );
 
 		// flush the data to the output
-		@ob_flush();
 		flush();
 	}
 
