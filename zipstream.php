@@ -134,6 +134,8 @@ class ArchiveStream_Zip extends ArchiveStream
 	 */
 	function finish()
 	{
+		$this->add_error_log();
+		
 		// add trailing cdr record
 		$this->add_cdr($this->opt);
 		$this->clear();
