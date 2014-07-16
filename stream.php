@@ -114,7 +114,8 @@ class ArchiveStream
 	 * 
 	 * @param string $message error text to display in log file
 	 */
-	function push_error( $message ) {
+	function push_error($message)
+	{
 		$this->errors[] = $message;
 	}
 
@@ -231,7 +232,7 @@ class ArchiveStream
 		if (!empty($this->errors))
 		{
 			$msg = 'Errors were encountered while trying to download the following files:';
-			foreach($this->errors as $err)
+			foreach ($this->errors as $err)
 			{
 				$msg .= "\r\n\r\n" . $err;
 			}
