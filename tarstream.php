@@ -124,6 +124,8 @@ class ArchiveStream_Tar extends ArchiveStream
 	 */
 	public function finish()
 	{
+		$this->add_error_log();
+		
 		// tar requires the end of the file have two 512 byte null blocks
 		$this->send( pack('a1024', '') );
 

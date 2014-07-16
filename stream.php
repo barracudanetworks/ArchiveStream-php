@@ -2,6 +2,8 @@
 
 class ArchiveStream
 {
+	private $errors = array();
+	
 	/**
 	 * Create a new ArchiveStream object.
 	 *
@@ -105,6 +107,15 @@ class ArchiveStream
 			$data = file_get_contents($path);
 			$this->add_file($name, $data, $opt);
 		}
+	}
+	
+	/**
+	 * Log an error to be output at the end of the archive
+	 * 
+	 * @param string $message error text to display in log file
+	 */
+	function push_error( $message ) {
+		$this->errors[] = $message;
 	}
 
 	/***************************
@@ -210,6 +221,22 @@ class ArchiveStream
 		$this->need_headers = false;
 
 		echo $data;
+	}
+	
+	/**
+	 * If errors were encountered, add an error log file to the archive
+	 */
+	function add_error_log()
+	{
+		if (!empty($this->errors))
+		{
+			$msg = 'Errors were encountered while trying to download the following files:';
+			foreach($this->errors as $err)
+			{
+				$msg .= "\r\n\r\n" . $err;
+			}
+			$this->add_file('download_errors.log', $msg);
+		}
 	}
 
 	/**
