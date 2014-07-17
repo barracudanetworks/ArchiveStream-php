@@ -2,7 +2,15 @@
 
 class ArchiveStream
 {
+	protected $use_container_dir = false;
+	
+	protected $container_dir_name = '';
+	
 	private $errors = array();
+	
+	private $error_log_filename = 'archive_errors.log';
+	
+	private $error_header_text = 'The following errors were encountered while generating this archive:';
 	
 	/**
 	 * Create a new ArchiveStream object.
@@ -11,10 +19,13 @@ class ArchiveStream
 	 * @param array $opt hash of archive options (see archive options in readme)
 	 * @access public
 	 */
-	public function __construct( $name = null, $opt = array() )
+	public function __construct($name = null, $opt = array(), $base_path = null)
 	{
 		// save options
 		$this->opt = $opt;
+		
+		// if a $base_path was passed set the protected property with that value, otherwise leave it empty
+		$this->container_dir_name = isset($base_path) ? $base_path . '/' : '';
 
 		// set large file defaults: size = 20 megabytes, method = store
 		if ( !isset($this->opt['large_file_size']) )
@@ -50,14 +61,14 @@ class ArchiveStream
 		{
 			require_once(__DIR__ . '/zipstream.php');
 			$filename = (($base_filename === null) ? null : $base_filename . '.zip');
-			return new ArchiveStream_Zip($filename, $opt);
+			return new ArchiveStream_Zip($filename, $opt, $base_filename);
 		}
 		// fallback to tar
 		else
 		{
 			require_once(__DIR__ . '/tarstream.php');
 			$filename = (($base_filename === null) ? null : $base_filename . '.tar');
-			return new ArchiveStream_Tar($filename, $opt);
+			return new ArchiveStream_Tar($filename, $opt, $base_filename);
 		}
 	}
 
@@ -114,9 +125,44 @@ class ArchiveStream
 	 * 
 	 * @param string $message error text to display in log file
 	 */
-	function push_error($message)
-	{
+	public function push_error($message) {
 		$this->errors[] = $message;
+	}
+	
+	/**
+	 * Set whether or not all elements in the archive will be placed within one container directory
+	 * 
+	 * @param bool $bool true to use contaner directory, false to prevent using one. Defaults to false
+	 */
+	public function set_use_container_dir($bool = false)
+	{
+		$this->use_container_dir = $bool;
+	}
+	
+	/**
+	 * Set the name filename for the error log file when it's added to the archive
+	 * 
+	 * @param string $name the filename for the error log
+	 */
+	public function set_error_log_filename($name)
+	{
+		if (isset($name))
+		{
+			$this->error_log_filename = $name;
+		}
+	}
+	
+	/**
+	 * Set the first line of text in the error log file
+	 * 
+	 * @param string $msg the text to display on the first line of the error log file
+	 */
+	public function set_error_header_text($msg)
+	{
+		if (isset($msg))
+		{
+			$this->error_header_text = $msg;
+		}
 	}
 
 	/***************************
@@ -225,18 +271,29 @@ class ArchiveStream
 	}
 	
 	/**
-	 * If errors were encountered, add an error log file to the archive
+	 * If errors were encountered, add an error log file to the end of the archive
 	 */
 	function add_error_log()
 	{
 		if (!empty($this->errors))
 		{
-			$msg = 'Errors were encountered while trying to download the following files:';
+			$msg = $this->error_header_text;
 			foreach ($this->errors as $err)
 			{
 				$msg .= "\r\n\r\n" . $err;
 			}
-			$this->add_file('download_errors.log', $msg);
+			
+			// stash current value so it can be reset later
+			$temp = $this->use_container_dir;
+			
+			// set to false to put the error log file in the root instead of the container directory, if we're using one
+			$this->use_container_dir = false;
+			
+			$this->add_file($this->error_log_filename, $msg);
+			
+			// reset to original value and dump the temp variable
+			$this->use_container_dir = $temp;
+			unset($temp);
 		}
 	}
 

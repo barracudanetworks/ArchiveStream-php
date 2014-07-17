@@ -5,7 +5,7 @@ require_once(__DIR__ . '/stream.php');
 class ArchiveStream_Zip extends ArchiveStream
 {
 	// initialize the options array
-	var $opt = array(),
+	public $opt = array(),
 		$files = array(),
 		$cdr_ofs = 0,
 		$ofs = 0;
@@ -37,6 +37,13 @@ class ArchiveStream_Zip extends ArchiveStream
 	 */
 	function init_file_stream_transfer( $name, $size, $opt = array(), $meth = 0x00 )
 	{
+		// if we're using a container directory, prepend it to the filename
+		if ($this->use_container_dir)
+		{
+			// the container directory will end with a '/' so ensure the filename doesn't start with one
+			$name = $this->container_dir_name . preg_replace('/^\\/+/', '', $name);
+		}
+		
 		$algo = 'crc32b';
 
 		// calculate header attributes
@@ -134,6 +141,7 @@ class ArchiveStream_Zip extends ArchiveStream
 	 */
 	function finish()
 	{
+		// adds an error log file if we've been tracking errors
 		$this->add_error_log();
 		
 		// add trailing cdr record
