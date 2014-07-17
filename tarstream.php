@@ -5,7 +5,7 @@ require_once(__DIR__ . '/stream.php');
 class ArchiveStream_Tar extends ArchiveStream
 {
 	// initialize the options array
-	var $opt = array();
+	public $opt = array();
 
 	/**
 	 * Create a new ArchiveStream_Tar object.
@@ -31,7 +31,17 @@ class ArchiveStream_Tar extends ArchiveStream
 	public function init_file_stream_transfer( $name, $size, $opt = array(), $meth = null )
 	{
 		$dirname = dirname($name);
-		if ( '.' == $dirname ) $dirname = '';
+		if ( '.' == $dirname )
+		{
+			$dirname = '';
+		}
+		
+		// if we're using a container directory, prepend it to the filename
+		if ($this->use_container_dir)
+		{
+			// the container directory will end with a '/' so ensure the filename doesn't start with one
+			$dirname = $this->container_dir_name . preg_replace('/^\\/+/', '', $dirname);
+		}
 
 		// handle long file names via PAX
 		if (strlen(basename($name)) > 99 || strlen($dirname) > 154)
@@ -124,6 +134,7 @@ class ArchiveStream_Tar extends ArchiveStream
 	 */
 	public function finish()
 	{
+		// adds an error log file if we've been tracking errors
 		$this->add_error_log();
 		
 		// tar requires the end of the file have two 512 byte null blocks
