@@ -127,7 +127,7 @@ class ArchiveStream
 	 */
 	public function push_error($message)
 	{
-		$this->errors[] = $message;
+		$this->errors[] = (string) $message;
 	}
 	
 	/**
