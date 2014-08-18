@@ -31,6 +31,7 @@ class ArchiveStream_Tar extends ArchiveStream
 	public function init_file_stream_transfer( $name, $size, $opt = array(), $meth = null )
 	{
 		$dirname = dirname($name);
+		$name = basename($name);
 		if ( '.' == $dirname )
 		{
 			$dirname = '';
@@ -44,9 +45,9 @@ class ArchiveStream_Tar extends ArchiveStream
 		}
 
 		// handle long file names via PAX
-		if (strlen(basename($name)) > 99 || strlen($dirname) > 154)
+		if (strlen($name) > 99 || strlen($dirname) > 154)
 		{
-			$pax = $this->__pax_generate( array('path' => $name) );
+			$pax = $this->__pax_generate( array('path' => $dirname . $name) );
 			$this->init_file_stream_transfer( '', strlen($pax), array('type' => 'x'));
 			$this->stream_file_part($pax);
 			$this->complete_file_stream();
@@ -61,7 +62,7 @@ class ArchiveStream_Tar extends ArchiveStream
 
 		// build data descriptor
 		$fields = array(
-			array('a100', substr(basename($name), 0, 100)),
+			array('a100', substr($name, 0, 100)),
 			array('a8',   str_pad('777', 7,  '0', STR_PAD_LEFT)),
 			array('a8',   decoct(str_pad('0',     7,  '0', STR_PAD_LEFT))),
 			array('a8',   decoct(str_pad('0',     7,  '0', STR_PAD_LEFT))),
