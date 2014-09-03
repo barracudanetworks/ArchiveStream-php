@@ -76,8 +76,10 @@ class ArchiveStream_Zip extends ArchiveStream
 		$this->len = gmp_add(gmp_init(strlen($data)), $this->len);
 		hash_update($this->hash_ctx, $data);
 
-		if (  $single_part === true && isset($this->meth_str) && $this->meth_str == 'deflate' )
+		if ($single_part === true && isset($this->meth_str) && $this->meth_str == 'deflate')
+		{
 			$data = gzdeflate($data);
+		}
 
 		$this->zlen = gmp_add(gmp_init(strlen($data)), $this->zlen);
 
@@ -91,7 +93,7 @@ class ArchiveStream_Zip extends ArchiveStream
 	 *
 	 * @access private
 	 */
- 	public function complete_file_stream()
+	public function complete_file_stream()
 	{
 		$crc = hexdec(hash_final($this->hash_ctx));
 
@@ -106,8 +108,8 @@ class ArchiveStream_Zip extends ArchiveStream
 		list($len_low, $len_high) = $this->int64_split($this->len);
 
 		$fields_len = array(
-			array('V', $zlen_low),       // compressed data length (low)
-			array('V', $zlen_high),      // compressed data length (high)
+			array('V', $zlen_low),      // compressed data length (low)
+			array('V', $zlen_high),     // compressed data length (high)
 			array('V', $len_low),       // uncompressed data length (low)
 			array('V', $len_high),      // uncompressed data length (high)
 		);
@@ -166,7 +168,11 @@ class ArchiveStream_Zip extends ArchiveStream
 		// create dos timestamp
 		$opt['time'] = isset($opt['time']) ? $opt['time'] : time();
 		$dts = $this->dostime($opt['time']);
-		$genb = 0x08; // bit 3
+
+		// Sets bit 3, which means CRC-32, uncompressed and compresed length
+		// are put in the data descriptor following the data. This gives us time
+		// to figure out the correct sizes, etc.
+		$genb = 0x08;
 
 		// build file header
 		$fields = array(                // (from V.A of APPNOTE.TXT)
@@ -227,7 +233,7 @@ class ArchiveStream_Zip extends ArchiveStream
 	 */
 	private function add_cdr_file($args)
 	{
-		list ($name, $opt, $meth, $crc, $zlen, $len, $ofs, $genb) = $args;
+		list($name, $opt, $meth, $crc, $zlen, $len, $ofs, $genb) = $args;
 
 		// convert the 64 bit ints to 2 32bit ints
 		list($zlen_low, $zlen_high) = $this->int64_split($zlen);
@@ -346,7 +352,9 @@ class ArchiveStream_Zip extends ArchiveStream
 		// grab comment (if specified)
 		$comment = '';
 		if ($opt && isset($opt['comment']))
+		{
 			$comment = $opt['comment'];
+		}
 
 		$fields = array(                    // (from V,F of APPNOTE.TXT)
 			array('V', 0x06054b50),         // end of central file header signature
