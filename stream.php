@@ -125,8 +125,9 @@ class ArchiveStream
 	 * 
 	 * @param string $message error text to display in log file
 	 */
-	public function push_error($message) {
-		$this->errors[] = $message;
+	public function push_error($message)
+	{
+		$this->errors[] = (string) $message;
 	}
 	
 	/**
@@ -136,7 +137,7 @@ class ArchiveStream
 	 */
 	public function set_use_container_dir($bool = false)
 	{
-		$this->use_container_dir = $bool;
+		$this->use_container_dir = (bool) $bool;
 	}
 	
 	/**
@@ -148,7 +149,7 @@ class ArchiveStream
 	{
 		if (isset($name))
 		{
-			$this->error_log_filename = $name;
+			$this->error_log_filename = (string) $name;
 		}
 	}
 	
@@ -161,7 +162,7 @@ class ArchiveStream
 	{
 		if (isset($msg))
 		{
-			$this->error_header_text = $msg;
+			$this->error_header_text = (string) $msg;
 		}
 	}
 
