@@ -4,15 +4,24 @@ require_once(__DIR__ . '/stream.php');
 
 class ArchiveStream_Zip extends ArchiveStream
 {
-	// initialize the options array
-	public $opt = array(),
-		$files = array(),
-		$cdr_ofs = 0,
-		$ofs = 0;
+	// options array
+	public $opt = array();
 
+	// files tracked for cdr
+	private $files = array();
 
-	// track the need to use zip64
-	private $zip64 = false;
+	// length of the CDR
+	private $cdr_len = 0;
+
+	// offset of the CDR
+	private $cdr_ofs = 0;
+
+	// will hold both the uncompressed and compressed length
+	private $len = null;
+	private $zlen = null;
+
+	// version zip created by / must be opened by (4.5 for zip64 support)
+	const VERSION = 45;
 
 	/**
 	 * Create a new ArchiveStream_Zip object.
@@ -35,7 +44,7 @@ class ArchiveStream_Zip extends ArchiveStream
 	 * @param int $meth method of compression to use (defaults to store)
 	 * @access public
 	 */
-	function init_file_stream_transfer( $name, $size, $opt = array(), $meth = 0x00 )
+	public function init_file_stream_transfer($name, $size, $opt = array(), $meth = 0x00)
 	{
 		// if we're using a container directory, prepend it to the filename
 		if ($this->use_container_dir)
@@ -62,15 +71,15 @@ class ArchiveStream_Zip extends ArchiveStream
 	 * @param bool $single_part used to determin if we can compress
 	 * @access public
 	 */
-	function stream_file_part( $data, $single_part = false )
+	public function stream_file_part($data, $single_part = false)
 	{
-		$this->len = gmp_add( gmp_init(strlen($data)), $this->len);
+		$this->len = gmp_add(gmp_init(strlen($data)), $this->len);
 		hash_update($this->hash_ctx, $data);
 
 		if (  $single_part === true && isset($this->meth_str) && $this->meth_str == 'deflate' )
 			$data = gzdeflate($data);
 
-		$this->zlen = gmp_add( gmp_init(strlen($data)), $this->zlen);
+		$this->zlen = gmp_add(gmp_init(strlen($data)), $this->zlen);
 
 		// send data
 		$this->send($data);
@@ -78,11 +87,11 @@ class ArchiveStream_Zip extends ArchiveStream
 	}
 
 	/**
-	 * Complete the current file stream
+	 * Complete the current file stream (zip64 format).
 	 *
 	 * @access private
 	 */
- 	function complete_file_stream()
+ 	public function complete_file_stream()
 	{
 		$crc = hexdec(hash_final($this->hash_ctx));
 
@@ -92,30 +101,16 @@ class ArchiveStream_Zip extends ArchiveStream
 			array('V', $crc),           // crc32 of data
 		);
 
-		if ($this->current_file_stream[8] === true)
-		{
-			// flip the global and file zip64 flags
-			$this->zip64 = true;
-			$this->current_file_stream[8] = true;
+		// convert the 64 bit ints to 2 32bit ints
+		list($zlen_low, $zlen_high) = $this->int64_split($this->zlen);
+		list($len_low, $len_high) = $this->int64_split($this->len);
 
-			// convert the 64 bit ints to 2 32bit ints
-			list($zlen_low, $zlen_high) = $this->int64_split($this->zlen);
-			list($len_low, $len_high) = $this->int64_split($this->len);
-
-			$fields_len = array(
-				array('V', $zlen_low),       // compressed data length (low)
-				array('V', $zlen_high),      // compressed data length (high)
-				array('V', $len_low),       // uncompressed data length (low)
-				array('V', $len_high),      // uncompressed data length (high)
-			);
-		}
-		else
-		{
-			$fields_len = array(
-				array('V', gmp_strval($this->zlen)),  // compressed data length
-				array('V', gmp_strval($this->len)),  // uncompressed data length
-			);
-		}
+		$fields_len = array(
+			array('V', $zlen_low),       // compressed data length (low)
+			array('V', $zlen_high),      // compressed data length (high)
+			array('V', $len_low),       // uncompressed data length (low)
+			array('V', $len_high),      // uncompressed data length (high)
+		);
 
 		// pack fields and calculate "total" length
 		$ret = $this->pack_fields($fields) . $this->pack_fields($fields_len);
@@ -130,7 +125,7 @@ class ArchiveStream_Zip extends ArchiveStream
 		$this->current_file_stream[6] += gmp_strval( gmp_add( gmp_init(strlen($ret)), $this->zlen ) );
 		ksort($this->current_file_stream);
 
-		// Add to cdr and increment offset
+		// Add to cdr and increment offset - can't call directly because we pass an array of params
 		call_user_func_array(array($this, 'add_to_cdr'), $this->current_file_stream);
 	}
 
@@ -139,11 +134,11 @@ class ArchiveStream_Zip extends ArchiveStream
 	 *
 	 * @access public
 	 */
-	function finish()
+	public function finish()
 	{
 		// adds an error log file if we've been tracking errors
 		$this->add_error_log();
-		
+
 		// add trailing cdr record
 		$this->add_cdr($this->opt);
 		$this->clear();
@@ -161,46 +156,29 @@ class ArchiveStream_Zip extends ArchiveStream
 	 * @param array $opt array containing time
 	 * @param int $meth method of compression to use
 	 */
-	protected function add_stream_file_header( $name, $size, $opt, $meth )
+	protected function add_stream_file_header($name, $size, $opt, $meth)
 	{
 		// strip leading slashes from file name
 		// (fixes bug in windows archive viewer)
 		$name = preg_replace('/^\\/+/', '', $name);
-
-		// ZIP64
-		if ($this->is64bit(gmp_init($size)) === true)
-		{
-			$this->zip64 = true;
-			$zip64 = true;
-			$extra = pack('vVVVV', 1, 0, 0, 0, 0);
-			$version = 45;
-		}
-		else
-		{
-			$zip64 = false;
-			$extra = '';
-			$version = 20;
-		}
-
-		// calculate name length
-		$nlen = strlen($name);
+		$extra = pack('vVVVV', 1, 0, 0, 0, 0);
 
 		// create dos timestamp
 		$opt['time'] = isset($opt['time']) ? $opt['time'] : time();
 		$dts = $this->dostime($opt['time']);
-		$genb = 0x0808;
+		$genb = 0x08; // bit 3
 
 		// build file header
 		$fields = array(                // (from V.A of APPNOTE.TXT)
 			array('V', 0x04034b50),     // local file header signature
-			array('v', $version),       // version needed to extract
+			array('v', self::VERSION),  // version needed to extract
 			array('v', $genb),          // general purpose bit flag
 			array('v', $meth),          // compresion method (deflate or store)
 			array('V', $dts),           // dos timestamp
-			array('V', 0x00),           // crc32 of data
+			array('V', 0x00),           // crc32 of data (0x00 because bit 3 set in $genb)
 			array('V', 0xFFFFFFFF),     // compressed data length
 			array('V', 0xFFFFFFFF),     // uncompressed data length
-			array('v', $nlen),          // filename length
+			array('v', strlen($name)),  // filename length
 			array('v', strlen($extra)), // extra data len
 		);
 
@@ -211,7 +189,14 @@ class ArchiveStream_Zip extends ArchiveStream
 		$this->send($ret . $name . $extra);
 
 		// Keep track of data for central directory record
-		$this->current_file_stream = array($name, $opt, $meth, 6 => (strlen($ret) + $nlen + strlen($extra)), 7 => $genb, 8 => $zip64);
+		$this->current_file_stream = array(
+			$name,
+			$opt,
+			$meth,
+			// 3-5 will be filled in by complete_file_stream()
+			6 => (strlen($ret) + strlen($name) + strlen($extra)),
+			7 => $genb,
+		);
 	}
 
 	/**
@@ -225,51 +210,37 @@ class ArchiveStream_Zip extends ArchiveStream
 	 * @param int $len uncompressed size
 	 * @param int $rec_size size of the record
 	 * @param int $genb general purpose bit flag
-	 * @param bool $zip64 true for 64bit
 	 * @access private
 	 */
-	private function add_to_cdr( $name, $opt, $meth, $crc, $zlen, $len, $rec_len, $genb = 0, $zip64 = false )
+	private function add_to_cdr($name, $opt, $meth, $crc, $zlen, $len, $rec_len, $genb = 0)
 	{
-		$this->files[] = array($name, $opt, $meth, $crc, $zlen, $len, $this->ofs, $genb, $zip64);
-		$this->ofs += $rec_len;
+		$this->files[] = array($name, $opt, $meth, $crc, $zlen, $len, $this->cdr_ofs, $genb);
+		$this->cdr_ofs += $rec_len;
 	}
 
 	/**
-	 * Send CDR record for specified file.
+	 * Send CDR record for specified file (zip64 format).
 	 *
 	 * @param array $args array of args
 	 * @see add_to_cdr() for details of the args
 	 * @access private
 	 */
-	private function add_cdr_file( $args )
+	private function add_cdr_file($args)
 	{
-		list ($name, $opt, $meth, $crc, $zlen, $len, $ofs, $genb, $zip64) = $args;
+		list ($name, $opt, $meth, $crc, $zlen, $len, $ofs, $genb) = $args;
 
-		if ($zip64 === true)
-		{
-			// bump version for zip64 support
-			$version = 45;
+		// convert the 64 bit ints to 2 32bit ints
+		list($zlen_low, $zlen_high) = $this->int64_split($zlen);
+		list($len_low, $len_high)   = $this->int64_split($len);
+		list($ofs_low, $ofs_high)   = $this->int64_split($ofs);
 
-			// convert the 64 bit ints to 2 32bit ints
-			list($zlen_low, $zlen_high) = $this->int64_split($zlen);
-			list($len_low, $len_high)   = $this->int64_split($len);
-			list($ofs_low, $ofs_high)   = $this->int64_split($ofs);
+		// ZIP64, necessary for files over 4GB (incl. entire archive size)
+		$extra_zip64 = '';
+		$extra_zip64 .= pack('VV', $len_low, $len_high);
+		$extra_zip64 .= pack('VV', $zlen_low, $zlen_high);
+		$extra_zip64 .= pack('VV', $ofs_low, $ofs_high);
 
-			// ZIP64
-			$extra_zip64 = '';
-			$extra_zip64 .= pack('VV', $len_low, $len_high);
-			$extra_zip64 .= pack('VV', $zlen_low, $zlen_high);
-			$extra_zip64 .= pack('VV', $ofs_low, $ofs_high);
-
-			$extra = pack('vv', 1, strlen($extra_zip64)) . $extra_zip64;
-			$zlen = $len = 0xFFFFFFFF;
-			$ofs = 0xFFFFFFFF;
-		}
-		else
-		{
-			$version = 20;
-			$extra = '';
-		}
+		$extra = pack('vv', 1, strlen($extra_zip64)) . $extra_zip64;
 
 		// get attributes
 		$comment = isset($opt['comment']) ? $opt['comment'] : '';
@@ -279,21 +250,21 @@ class ArchiveStream_Zip extends ArchiveStream
 
 		$fields = array(                      // (from V,F of APPNOTE.TXT)
 			array('V', 0x02014b50),           // central file header signature
-			array('v', $version),             // version made by
-			array('v', $version),             // version needed to extract
+			array('v', self::VERSION),        // version made by
+			array('v', self::VERSION),        // version needed to extract
 			array('v', $genb),                // general purpose bit flag
 			array('v', $meth),                // compresion method (deflate or store)
 			array('V', $dts),                 // dos timestamp
 			array('V', $crc),                 // crc32 of data
-			array('V', $zlen),                // compressed data length
-			array('V', $len),                 // uncompressed data length
+			array('V', 0xFFFFFFFF),           // compressed data length (zip64 - look in extra)
+			array('V', 0xFFFFFFFF),           // uncompressed data length (zip64 - look in extra)
 			array('v', strlen($name)),        // filename length
 			array('v', strlen($extra)),       // extra data len
 			array('v', strlen($comment)),     // file comment length
 			array('v', 0),                    // disk number start
 			array('v', 0),                    // internal file attributes
 			array('V', 32),                   // external file attributes
-			array('V', $ofs),                 // relative offset of local header
+			array('V', 0xFFFFFFFF),           // relative offset of local header (zip64 - look in extra)
 		);
 
 		// pack fields, then append name and comment
@@ -302,70 +273,30 @@ class ArchiveStream_Zip extends ArchiveStream
 		$this->send($ret);
 
 		// increment cdr offset
-		$this->cdr_ofs += strlen($ret);
+		$this->cdr_len += strlen($ret);
 	}
 
 	/**
-	 * Send CDR EOF (Central Directory Record End-of-File) record.
-	 *
-	 * @param array $opt options array that may contain a comment
-	 * @access private
-	 */
-	private function add_cdr_eof( $opt = null )
-	{
-		$num = count($this->files);
-		$cdr_len = $this->cdr_ofs;
-		$cdr_ofs = $this->ofs;
-
-		if ($this->zip64 === true)
-		{
-			if ($num > 0xFFFF) $num = 0xFFFF;
-			if ($cdr_len > 0xFFFFFFFF) $cdr_len = 0xFFFFFFFF;
-			$cdr_ofs = 0xFFFFFFFF;
-		}
-
-		// grab comment (if specified)
-		$comment = '';
-		if ($opt && isset($opt['comment']))
-			$comment = $opt['comment'];
-
-		$fields = array(                    // (from V,F of APPNOTE.TXT)
-			array('V', 0x06054b50),         // end of central file header signature
-			array('v', 0x00),               // this disk number
-			array('v', 0x00),               // number of disk with cdr
-			array('v', $num),               // number of entries in the cdr on this disk
-			array('v', $num),               // number of entries in the cdr
-			array('V', $cdr_len),           // cdr size
-			array('V', $cdr_ofs),           // cdr ofs
-			array('v', strlen($comment)),   // zip file comment length
-		);
-
-		$ret = $this->pack_fields($fields) . $comment;
-		$this->send($ret);
-	}
-
-	/**
-	 * Add central directory for ZIP64
+	 * Adds Zip64 end of central directory record
 	 *
 	 * @param int $cdr_start the offset where the cdr starts
 	 * @access private
 	 */
-	private function add_cdr_zip64($cdr_start)
+	private function add_cdr_eof_zip64()
 	{
 		$num = count($this->files);
-		$cdr_len = $this->cdr_ofs;
 
 		list($num_low, $num_high) = $this->int64_split($num);
-		list($cdr_len_low, $cdr_len_high) = $this->int64_split($cdr_len);
-		list($cdr_ofs_low, $cdr_ofs_high) = $this->int64_split($cdr_start);
+		list($cdr_len_low, $cdr_len_high) = $this->int64_split($this->cdr_len);
+		list($cdr_ofs_low, $cdr_ofs_high) = $this->int64_split($this->cdr_ofs);
 
 		$fields = array(                    // (from V,F of APPNOTE.TXT)
-			array('V', 0x06064b50),         // zip64 end of central file header signature
-			array('V', 44),                 // size of zip64 end of central directory record (low)
+			array('V', 0x06064b50),         // zip64 end of central directory signature
+			array('V', 44),                 // size of zip64 end of central directory record (low) minus 12 bytes
 			array('V', 0),                  // size of zip64 end of central directory record (high)
-			array('v', 45),                 // version made by
-			array('v', 45),                 // version needed to extract
-			array('V', 0x0000),             // this disk number
+			array('v', self::VERSION),      // version made by
+			array('v', self::VERSION),      // version needed to extract
+			array('V', 0x0000),             // this disk number (only one disk)
 			array('V', 0x0000),             // number of disk with central dir
 			array('V', $num_low),           // number of entries in the cdr for this disk (low)
 			array('V', $num_high),          // number of entries in the cdr for this disk (high)
@@ -386,12 +317,9 @@ class ArchiveStream_Zip extends ArchiveStream
 	 *
 	 * @access private
 	 */
-	private function add_cdr_eof_zip64()
+	private function add_cdr_eof_locator_zip64()
 	{
-		$cdr_len = $this->cdr_ofs;
-		$cdr_ofs = $this->ofs;
-
-		list($cdr_ofs_low, $cdr_ofs_high) = $this->int64_split($cdr_len + $cdr_ofs);
+		list($cdr_ofs_low, $cdr_ofs_high) = $this->int64_split($this->cdr_len + $this->cdr_ofs);
 
 		$fields = array(                    // (from V,F of APPNOTE.TXT)
 			array('V', 0x07064b50),         // zip64 end of central dir locator signature
@@ -406,23 +334,50 @@ class ArchiveStream_Zip extends ArchiveStream
 	}
 
 	/**
+	 * Send CDR EOF (Central Directory Record End-of-File) record. Most values
+	 * point to the corresponding values in the ZIP64 CDR. The optional comment
+	 * still goes in this CDR however.
+	 *
+	 * @param array $opt options array that may contain a comment
+	 * @access private
+	 */
+	private function add_cdr_eof($opt = null)
+	{
+		// grab comment (if specified)
+		$comment = '';
+		if ($opt && isset($opt['comment']))
+			$comment = $opt['comment'];
+
+		$fields = array(                    // (from V,F of APPNOTE.TXT)
+			array('V', 0x06054b50),         // end of central file header signature
+			array('v', 0xFFFF),             // this disk number (0xFFFF to look in zip64 cdr)
+			array('v', 0xFFFF),             // number of disk with cdr (0xFFFF to look in zip64 cdr)
+			array('v', 0xFFFF),             // number of entries in the cdr on this disk (0xFFFF to look in zip64 cdr))
+			array('v', 0xFFFF),             // number of entries in the cdr (0xFFFF to look in zip64 cdr)
+			array('V', 0xFFFFFFFF),         // cdr size (0xFFFFFFFF to look in zip64 cdr)
+			array('V', 0xFFFFFFFF),         // cdr offset (0xFFFFFFFF to look in zip64 cdr)
+			array('v', strlen($comment)),   // zip file comment length
+		);
+
+		$ret = $this->pack_fields($fields) . $comment;
+		$this->send($ret);
+	}
+
+	/**
 	 * Add CDR (Central Directory Record) footer.
 	 *
      * @param array $opt options array that may contain a comment
 	 * @access private
 	 */
-	private function add_cdr( $opt = null )
+	private function add_cdr($opt = null)
 	{
-		$cdr_start = $this->ofs;
-
 		foreach ($this->files as $file)
-			$this->add_cdr_file($file);
-
-		if ($this->zip64 || sizeof($this->files) > 65535)
 		{
-			$this->add_cdr_zip64($cdr_start);
-			$this->add_cdr_eof_zip64();
+			$this->add_cdr_file($file);
 		}
+
+		$this->add_cdr_eof_zip64();
+		$this->add_cdr_eof_locator_zip64();
 
 		$this->add_cdr_eof($opt);
 	}
@@ -437,8 +392,8 @@ class ArchiveStream_Zip extends ArchiveStream
 	private function clear()
 	{
 		$this->files = array();
-		$this->ofs = 0;
 		$this->cdr_ofs = 0;
+		$this->cdr_len = 0;
 		$this->opt = array();
 	}
 }
