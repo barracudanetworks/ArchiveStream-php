@@ -324,23 +324,6 @@ class ArchiveStream
 	}
 
 	/**
-	 * Determin if a int is 64bit
-	 *
-	 * @param int $value integer
-	 * @return bool true if > 32bits, false otherwise
-	 * @access protected
-	 */
-	protected function is64bit($value)
-	{
-		static $int32max = null;
-
-		if ($int32max === null)
-			$int32max = gmp_init('4294967296');
-
-		return (gmp_cmp($value, $int32max) === 1);
-	}
-
-	/**
 	 * Split a 64bit integer to two 32bit integers
 	 *
 	 * @param mixed $value integer or gmp resource
