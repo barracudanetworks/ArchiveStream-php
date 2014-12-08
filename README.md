@@ -108,6 +108,11 @@ $zip->complete_file_stream();
 $zip->finish();
 ```
 
+## Limitations
+
+ * Only Zip64 (version 4.5 of the Zip specification) is supported.
+ * Files cannot be resumed if a download fails before finishing.
+
 ### Other
 
 You can also add comments, modify file timestamps, and customize (or
@@ -126,6 +131,7 @@ disable) the HTTP headers.  See the class file for details.
 - Tony Blyler
 - Andrew Borek
 - Rafael Corral
+- John Maguire
 
 ## License
 
