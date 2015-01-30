@@ -174,8 +174,7 @@ class ArchiveStream_Zip extends ArchiveStream
 		// to figure out the correct sizes, etc.
 		$genb = 0x08;
 
-		$isNameUTF8 = mb_check_encoding($name, "UTF-8") && !mb_check_encoding($name, "ASCII");
-		if ($isNameUTF8) {
+		if (mb_check_encoding($name, "UTF-8") && !mb_check_encoding($name, "ASCII")) {
 			// Sets Bit 11: Language encoding flag (EFS).  If this bit is set,
 			// the filename and comment fields for this file
         		// MUST be encoded using UTF-8. (see APPENDIX D)
