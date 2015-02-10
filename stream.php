@@ -12,6 +12,7 @@ class ArchiveStream
 	
 	private $error_header_text = 'The following errors were encountered while generating this archive:';
 	
+	protected $block_size = 1048576; // process in 1 megabyte chunks
 	/**
 	 * Create a new ArchiveStream object.
 	 *
@@ -181,8 +182,6 @@ class ArchiveStream
 	 */
 	protected function add_large_file( $name, $path, $opt = array() )
 	{
-		$block_size = 1048576; // process in 1 megabyte chunks
-
 		// send file header
 		$this->init_file_stream_transfer( $name, filesize($path), $opt );
 
@@ -190,7 +189,7 @@ class ArchiveStream
 		$fh = fopen($path, 'rb');
 
 		// send file blocks
-		while ($data = fgets($fh, $block_size))
+		while ($data = fread($fh, $this->block_size))
 		{
 			// send data
 			$this->stream_file_part($data);
