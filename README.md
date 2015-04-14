@@ -1,6 +1,6 @@
-# ArchiveStream 0.2.4
+# ArchiveStream 0.3.0
 
-A library for dynamically streaming dynamic tar or zip files without the need to have the complete file stored on the server.  You can specify if you want tar or zip, or have the library figure out the best option based on the user agent string.
+A library for dynamically streaming dynamic tar or zip files without the need to have the complete file stored on the server. You can specify if you want a tar or a zip; or if you want to have the library figure out the best option based on the user agent string.
 
 ## Options
 
@@ -108,21 +108,20 @@ $zip->complete_file_stream();
 $zip->finish();
 ```
 
+## Requirements
+
+  * PHP >=5.1.2 (or the [Hash extension](http://php.net/hash)).
+  * gmp extension
+
 ## Limitations
 
- * Only Zip64 (version 4.5 of the Zip specification) is supported.
+ * Only the Zip64 (version 4.5 of the Zip specification) format is supported.
  * Files cannot be resumed if a download fails before finishing.
 
 ### Other
 
 You can also add comments, modify file timestamps, and customize (or
 disable) the HTTP headers.  See the class file for details.
-
-## Requirements
-
-  * PHP version 5.1.2 or newer (specifically, the hash_init and
-    hash_file functions).
-  * gmp
 
 ## Contributors
 - Paul Duncan - Original author
@@ -136,6 +135,6 @@ disable) the HTTP headers.  See the class file for details.
 ## License
 
 Original work Copyright 2007-2009 Paul Duncan <pabs@pablotron.org>
-Modified work Copyright 2013 Barracuda Networks, Inc.
+Modified work Copyright 2013-2015 Barracuda Networks, Inc.
 
 Licensed under the MIT License
