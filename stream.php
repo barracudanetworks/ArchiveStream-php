@@ -3,15 +3,15 @@
 class ArchiveStream
 {
 	protected $use_container_dir = false;
-	
+
 	protected $container_dir_name = '';
-	
+
 	private $errors = array();
-	
+
 	private $error_log_filename = 'archive_errors.log';
-	
+
 	private $error_header_text = 'The following errors were encountered while generating this archive:';
-	
+
 	protected $block_size = 1048576; // process in 1 megabyte chunks
 	/**
 	 * Create a new ArchiveStream object.
@@ -24,19 +24,26 @@ class ArchiveStream
 	{
 		// save options
 		$this->opt = $opt;
-		
+
 		// if a $base_path was passed set the protected property with that value, otherwise leave it empty
 		$this->container_dir_name = isset($base_path) ? $base_path . '/' : '';
 
 		// set large file defaults: size = 20 megabytes, method = store
-		if ( !isset($this->opt['large_file_size']) )
+		if (!isset($this->opt['large_file_size']))
+		{
 			$this->opt['large_file_size'] = 20 * 1024 * 1024;
-		if ( !isset($this->opt['large_files_only']) )
+		}
+
+		if (!isset($this->opt['large_files_only']))
+		{
 			$this->opt['large_files_only'] = false;
+		}
 
 		$this->output_name = $name;
-		if ( $name || isset($opt['send_http_headers']) )
+		if ($name || isset($opt['send_http_headers']))
+		{
 			$this->need_headers = true;
+		}
 
 		// turn off output buffering
 		while (ob_get_level() > 0)
@@ -53,7 +60,7 @@ class ArchiveStream
 	 * @return ArchiveStream for either zip or tar
 	 * @access public
 	 */
-	public static function instance_by_useragent( $base_filename = null, $opt = array() )
+	public static function instance_by_useragent($base_filename = null, $opt = array())
 	{
 		$user_agent = (isset($_SERVER['HTTP_USER_AGENT']) ? strtolower($_SERVER['HTTP_USER_AGENT']) : '');
 
@@ -83,14 +90,14 @@ class ArchiveStream
      * @param array $opt hash of file options (see above for list)
      * @access public
 	 */
-	function add_file( $name, $data, $opt = array() )
+	public function add_file($name, $data, $opt = array())
 	{
 		// calculate header attributes
 		$this->meth_str = 'deflate';
 		$meth = 0x08;
 
 		// send file header
-		$this->init_file_stream_transfer( $name, strlen($data), $opt, $meth );
+		$this->init_file_stream_transfer($name, strlen($data), $opt, $meth);
 
 		// send data
 		$this->stream_file_part($data, $single_part = true);
@@ -108,42 +115,45 @@ class ArchiveStream
      * @param array $opt hash of file options (see above for list)
 	 * @access public
 	 */
-	function add_file_from_path( $name, $path, $opt = array() )
+	public function add_file_from_path($name, $path, $opt = array())
 	{
-		if ( $this->opt['large_files_only'] || $this->is_large_file($path) ) {
+		if ($this->opt['large_files_only'] || $this->is_large_file($path))
+		{
 			// file is too large to be read into memory; add progressively
 			$this->add_large_file($name, $path, $opt);
-		} else {
+		}
+		else
+		{
 			// file is small enough to read into memory; read file contents and
 			// handle with add_file()
 			$data = file_get_contents($path);
 			$this->add_file($name, $data, $opt);
 		}
 	}
-	
+
 	/**
 	 * Log an error to be output at the end of the archive
-	 * 
+	 *
 	 * @param string $message error text to display in log file
 	 */
 	public function push_error($message)
 	{
 		$this->errors[] = (string) $message;
 	}
-	
+
 	/**
 	 * Set whether or not all elements in the archive will be placed within one container directory
-	 * 
+	 *
 	 * @param bool $bool true to use contaner directory, false to prevent using one. Defaults to false
 	 */
 	public function set_use_container_dir($bool = false)
 	{
 		$this->use_container_dir = (bool) $bool;
 	}
-	
+
 	/**
 	 * Set the name filename for the error log file when it's added to the archive
-	 * 
+	 *
 	 * @param string $name the filename for the error log
 	 */
 	public function set_error_log_filename($name)
@@ -153,10 +163,10 @@ class ArchiveStream
 			$this->error_log_filename = (string) $name;
 		}
 	}
-	
+
 	/**
 	 * Set the first line of text in the error log file
-	 * 
+	 *
 	 * @param string $msg the text to display on the first line of the error log file
 	 */
 	public function set_error_header_text($msg)
@@ -180,10 +190,10 @@ class ArchiveStream
      * @param array $opt hash of file options (see above for list)
      * @access protected
 	 */
-	protected function add_large_file( $name, $path, $opt = array() )
+	protected function add_large_file($name, $path, $opt = array())
 	{
 		// send file header
-		$this->init_file_stream_transfer( $name, filesize($path), $opt );
+		$this->init_file_stream_transfer($name, filesize($path), $opt);
 
 		// open input file
 		$fh = fopen($path, 'rb');
@@ -209,7 +219,7 @@ class ArchiveStream
 	 * @return bool true if large, false if small
 	 * @access protected
 	 */
-	protected function is_large_file( $path )
+	protected function is_large_file($path)
 	{
 		$st = stat($path);
 		return ($this->opt['large_file_size'] > 0) && ($st['size'] > $this->opt['large_file_size']);
@@ -269,11 +279,11 @@ class ArchiveStream
 
 		echo $data;
 	}
-	
+
 	/**
 	 * If errors were encountered, add an error log file to the end of the archive
 	 */
-	function add_error_log()
+	public function add_error_log()
 	{
 		if (!empty($this->errors))
 		{
@@ -282,15 +292,15 @@ class ArchiveStream
 			{
 				$msg .= "\r\n\r\n" . $err;
 			}
-			
+
 			// stash current value so it can be reset later
 			$temp = $this->use_container_dir;
-			
+
 			// set to false to put the error log file in the root instead of the container directory, if we're using one
 			$this->use_container_dir = false;
-			
+
 			$this->add_file($this->error_log_filename, $msg);
-			
+
 			// reset to original value and dump the temp variable
 			$this->use_container_dir = $temp;
 			unset($temp);
@@ -337,8 +347,8 @@ class ArchiveStream
 		{
 			$hex  = str_pad(gmp_strval($value, 16), 16, '0', STR_PAD_LEFT);
 
-	        $low  = $this->gmp_convert( substr($hex, 0, 8), 16, 10 );
-	        $high = $this->gmp_convert( substr($hex, 8, 8), 16, 10 );
+	        $high = $this->gmp_convert(substr($hex, 0, 8), 16, 10);
+	        $low  = $this->gmp_convert(substr($hex, 8, 8), 16, 10);
 		}
 		// int
 		else
@@ -346,11 +356,11 @@ class ArchiveStream
 			$left  = 0xffffffff00000000;
 			$right = 0x00000000ffffffff;
 
-			$low  = ($value & $left) >>32;
-			$high = $value & $right;
+			$high = ($value & $left) >>32;
+			$low  = $value & $right;
 		}
 
-		return array($high, $low);
+		return array($low, $high);
 	}
 
 	/**

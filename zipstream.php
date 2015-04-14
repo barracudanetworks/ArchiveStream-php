@@ -52,7 +52,7 @@ class ArchiveStream_Zip extends ArchiveStream
 			// the container directory will end with a '/' so ensure the filename doesn't start with one
 			$name = $this->container_dir_name . preg_replace('/^\\/+/', '', $name);
 		}
-		
+
 		$algo = 'crc32b';
 
 		// calculate header attributes
@@ -97,17 +97,14 @@ class ArchiveStream_Zip extends ArchiveStream
 	{
 		$crc = hexdec(hash_final($this->hash_ctx));
 
-		// build data descriptor
-		$fields = array(                // (from V.A of APPNOTE.TXT)
-			array('V', 0x08074b50),     // data descriptor
-			array('V', $crc),           // crc32 of data
-		);
-
 		// convert the 64 bit ints to 2 32bit ints
 		list($zlen_low, $zlen_high) = $this->int64_split($this->zlen);
 		list($len_low, $len_high) = $this->int64_split($this->len);
 
-		$fields_len = array(
+		// build data descriptor
+		$fields = array(                // (from V.A of APPNOTE.TXT)
+			array('V', 0x08074b50),     // data descriptor
+			array('V', $crc),           // crc32 of data
 			array('V', $zlen_low),      // compressed data length (low)
 			array('V', $zlen_high),     // compressed data length (high)
 			array('V', $len_low),       // uncompressed data length (low)
@@ -115,7 +112,7 @@ class ArchiveStream_Zip extends ArchiveStream
 		);
 
 		// pack fields and calculate "total" length
-		$ret = $this->pack_fields($fields) . $this->pack_fields($fields_len);
+		$ret = $this->pack_fields($fields);
 
 		// print header and filename
 		$this->send($ret);
@@ -177,10 +174,10 @@ class ArchiveStream_Zip extends ArchiveStream
 		if (mb_check_encoding($name, "UTF-8") && !mb_check_encoding($name, "ASCII")) {
 			// Sets Bit 11: Language encoding flag (EFS).  If this bit is set,
 			// the filename and comment fields for this file
-        		// MUST be encoded using UTF-8. (see APPENDIX D)
-			$genb = 0x0808;
+			// MUST be encoded using UTF-8. (see APPENDIX D)
+			$genb |= 0x0800;
 		}
-		
+
 		// build file header
 		$fields = array(                // (from V.A of APPNOTE.TXT)
 			array('V', 0x04034b50),     // local file header signature
@@ -285,7 +282,7 @@ class ArchiveStream_Zip extends ArchiveStream
 
 		$this->send($ret);
 
-		// increment cdr offset
+		// increment cdr length
 		$this->cdr_len += strlen($ret);
 	}
 
