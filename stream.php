@@ -64,21 +64,45 @@ class ArchiveStream
 	{
 		$user_agent = (isset($_SERVER['HTTP_USER_AGENT']) ? strtolower($_SERVER['HTTP_USER_AGENT']) : '');
 
+		$filename = self::filename_by_useragent($base_filename);
+
 		// detect windows and use zip
 		if (strpos($user_agent, 'windows') !== false)
 		{
 			require_once(__DIR__ . '/zipstream.php');
-			$filename = (($base_filename === null) ? null : $base_filename . '.zip');
 			return new ArchiveStream_Zip($filename, $opt, $base_filename);
 		}
 		// fallback to tar
 		else
 		{
 			require_once(__DIR__ . '/tarstream.php');
-			$filename = (($base_filename === null) ? null : $base_filename . '.tar');
-			return new ArchiveStream_Tar($filename, $opt, $base_filename);
+		return new ArchiveStream_Tar($filename, $opt, $base_filename);
 		}
 	}
+
+	/**
+	 * Get filename based on useragent string
+	 *
+	 * @param string $base_filename the base of the filename that will be appended with the correct extention
+	 * @return Future name of archive for either zip or tar
+	 * @access public
+	 */
+	public static function filename_by_useragent( $base_filename = null )
+	{
+		$user_agent = (isset($_SERVER['HTTP_USER_AGENT']) ? strtolower($_SERVER['HTTP_USER_AGENT']) : '');
+
+		// detect windows and use zip
+		if (strpos($user_agent, 'windows') !== false)
+		{
+			return (($base_filename === null) ? null : $base_filename . '.zip');
+		}
+		// fallback to tar
+		else
+		{
+			return (($base_filename === null) ? null : $base_filename . '.tar');
+		}
+	}
+
 
 	/**
 	 * Add file to the archive
