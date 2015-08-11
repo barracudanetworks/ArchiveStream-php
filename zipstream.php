@@ -36,6 +36,28 @@ class ArchiveStream_Zip extends ArchiveStream
 	}
 
 	/**
+	 * Explicitly adds a directory to the tar (necessary for empty directories)
+	 *
+	 * @param  string $name Name (path) of the directory
+	 * @param  array  $opt  Additional options to set ("type" will be overrided)
+	 * @return void
+	 */
+	function add_directory($name, $opt = array())
+	{
+		// calculate header attributes
+		$this->meth_str = 'deflate';
+		$meth = 0x08;
+		if (substr($name, -1) != '/')
+		{
+			$name = $name . '/';
+		}
+		// send header
+		$this->init_file_stream_transfer($name, $size = 0, $opt, $meth);
+		// complete the file stream
+		$this->complete_file_stream();
+	}
+
+	/**
 	 * Initialize a file stream
 	 *
 	 * @param string $name file path or just name

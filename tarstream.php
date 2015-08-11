@@ -4,6 +4,10 @@ require_once(__DIR__ . '/stream.php');
 
 class ArchiveStream_Tar extends ArchiveStream
 {
+	const REGTYPE = 1;
+	const DIRTYPE = 5;
+	const XHDTYPE = 'x';
+
 	// initialize the options array
 	public $opt = array();
 
@@ -20,6 +24,28 @@ class ArchiveStream_Tar extends ArchiveStream
 	}
 
 	/**
+	 * Explicitly adds a directory to the tar (necessary for empty directories)
+	 *
+	 * @param  string $name Name (path) of the directory
+	 * @param  array  $opt  Additional options to set ("type" will be overrided)
+	 * @return void
+	 */
+	function add_directory($name, $opt = array())
+	{
+		// calculate header attributes
+		$this->meth_str = 'deflate';
+		$meth = 0x08;
+
+		$opt['type'] = self::DIRTYPE;
+
+		// send header
+		$this->init_file_stream_transfer($name, $size = 0, $opt, $meth);
+
+		// complete the file stream
+		$this->complete_file_stream();
+	}
+
+	/**
 	 * Initialize a file stream
 	 *
 	 * @param string $name file path or just name
@@ -28,15 +54,25 @@ class ArchiveStream_Tar extends ArchiveStream
 	 * @param int $meth method of compression to use (not used in this class)
 	 * @access public
 	 */
-	public function init_file_stream_transfer( $name, $size, $opt = array(), $meth = null )
+	public function init_file_stream_transfer($name, $size, $opt = array(), $meth = null)
 	{
+		// try to detect the type if not provided
+		$type = self::REGTYPE;
+		if (isset($opt['type']))
+		{
+			$type = $opt['type'];
+		}
+		elseif (substr($name, -1) == '/')
+		{
+			$type = self::DIRTYPE;
+		}
+
 		$dirname = dirname($name);
 		$name = basename($name);
-		if ( '.' == $dirname )
-		{
-			$dirname = '';
-		}
-		
+
+		$dirname = ($dirname == '.') ? '' : $dirname;
+		$name = ($type == self::DIRTYPE) ? $name . '/' : $name;
+
 		// if we're using a container directory, prepend it to the filename
 		if ($this->use_container_dir)
 		{
@@ -47,9 +83,15 @@ class ArchiveStream_Tar extends ArchiveStream
 		// handle long file names via PAX
 		if (strlen($name) > 99 || strlen($dirname) > 154)
 		{
-			$pax = $this->__pax_generate( array('path' => $dirname . $name) );
-			$this->init_file_stream_transfer( '', strlen($pax), array('type' => 'x'));
-			$this->stream_file_part($pax);
+			$pax = $this->__pax_generate(array(
+				'path' => $dirname . '/' . $name
+			));
+
+			$this->init_file_stream_transfer('', strlen($pax), array(
+				'type' => self::XHDTYPE
+			));
+
+			$this->stream_file_part($pax, $single_part = true);
 			$this->complete_file_stream();
 		}
 
@@ -58,7 +100,6 @@ class ArchiveStream_Tar extends ArchiveStream
 
 		// process optional arguments
 		$time = isset($opt['time']) ? $opt['time'] : time();
-		$type = isset($opt['type']) ? $opt['type'] : '0';
 
 		// build data descriptor
 		$fields = array(
@@ -137,7 +178,7 @@ class ArchiveStream_Tar extends ArchiveStream
 	{
 		// adds an error log file if we've been tracking errors
 		$this->add_error_log();
-		
+
 		// tar requires the end of the file have two 512 byte null blocks
 		$this->send( pack('a1024', '') );
 

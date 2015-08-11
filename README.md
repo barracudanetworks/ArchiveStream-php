@@ -104,6 +104,11 @@ $zip->complete_file_stream();
 
 // Other files can be added here, simply run the three commands above for each file that is being sent
 
+// Explicitly add a directory to the zip (doesn't recurse - useful for empty
+// directories)
+$zip->add_directory('foo');
+$zip->add_directory('foo/bar');
+
 // Finish the zip stream
 $zip->finish();
 ```

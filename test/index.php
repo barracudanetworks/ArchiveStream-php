@@ -38,6 +38,8 @@ foreach ($files as $file) {
 
 // add a long file name
 $zip->add_file('/long/' . str_repeat('a', 200) . '.txt', 'test');
+$zip->add_directory('/foo');
+$zip->add_directory('/foo/bar');
 
 // finish archive
 $zip->finish();

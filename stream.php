@@ -12,7 +12,11 @@ class ArchiveStream
 
 	private $error_header_text = 'The following errors were encountered while generating this archive:';
 
-	protected $block_size = 1048576; // process in 1 megabyte chunks
+	/**
+	 * Process in 1 MB chunks
+	 */
+	protected $block_size = 1048576;
+
 	/**
 	 * Create a new ArchiveStream object.
 	 *
