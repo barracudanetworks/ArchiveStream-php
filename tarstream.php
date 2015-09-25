@@ -4,7 +4,7 @@ require_once(__DIR__ . '/stream.php');
 
 class ArchiveStream_Tar extends ArchiveStream
 {
-	const REGTYPE = 1;
+	const REGTYPE = 0;
 	const DIRTYPE = 5;
 	const XHDTYPE = 'x';
 
@@ -70,14 +70,20 @@ class ArchiveStream_Tar extends ArchiveStream
 		$dirname = dirname($name);
 		$name = basename($name);
 
+		// Remove '.' from the current directory
 		$dirname = ($dirname == '.') ? '' : $dirname;
-		$name = ($type == self::DIRTYPE) ? $name . '/' : $name;
 
 		// if we're using a container directory, prepend it to the filename
 		if ($this->use_container_dir)
 		{
-			// the container directory will end with a '/' so ensure the filename doesn't start with one
-			$dirname = $this->container_dir_name . preg_replace('/^\\/+/', '', $dirname);
+			// the container directory will end with a '/' so ensure the lower level directory name doesn't start with one
+			$dirname = $this->container_dir_name . preg_replace('/^\/+/', '', $dirname);
+		}
+
+		// Remove trailing slash from directory name, because tar implies it.
+		if (substr($dirname, -1) == '/')
+		{
+			$dirname = substr($dirname, 0, -1);
 		}
 
 		// handle long file names via PAX
