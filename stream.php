@@ -1,30 +1,54 @@
 <?php
 
+/**
+ * A streaming archive object.
+ */
 class ArchiveStream
 {
+	/**
+	 * Whether to use the specified base path or not for files in the archive.
+	 * @var bool
+	 */
 	protected $use_container_dir = false;
 
+	/**
+	 * Base path for files added to the archive.
+	 * @var string
+	 */
 	protected $container_dir_name = '';
 
+	/**
+	 * List of errors encountered while generating the archive.
+	 * @var string
+	 */
 	private $errors = array();
 
+	/**
+	 * Filename for the error log which will be placed inside the archive.
+	 * @var string
+	 */
 	private $error_log_filename = 'archive_errors.log';
 
+	/**
+	 * Message to place at the top of the error log.
+	 * @var string
+	 */
 	private $error_header_text = 'The following errors were encountered while generating this archive:';
 
 	/**
-	 * Process in 1 MB chunks
+	 * Block size to process files in. Defaults to 1M
+	 * @var int
 	 */
 	protected $block_size = 1048576;
 
 	/**
 	 * Create a new ArchiveStream object.
 	 *
-	 * @param string $name name of output file (optional).
-	 * @param array $opt hash of archive options (see archive options in readme)
-	 * @access public
+	 * @param string $name      The name of the resulting archive (optional).
+	 * @param array  $opt       Hash of archive options (see archive options in readme).
+	 * @param string $base_path An optional base path for files to be named under.
 	 */
-	public function __construct($name = null, $opt = array(), $base_path = null)
+	public function __construct($name = null, array $opt = array(), $base_path = null)
 	{
 		// save options
 		$this->opt = $opt;
@@ -59,12 +83,11 @@ class ArchiveStream
 	/**
 	 * Create instance based on useragent string
 	 *
-	 * @param string $base_filename the base of the filename that will be appended with the correct extention
-	 * @param array $opt hash of archive options (see above for list)
+	 * @param string $base_filename A name for the resulting archive (without an extension).
+	 * @param array  $opt           Map of archive options (see above for list).
 	 * @return ArchiveStream for either zip or tar
-	 * @access public
 	 */
-	public static function instance_by_useragent($base_filename = null, $opt = array())
+	public static function instance_by_useragent($base_filename = null, array $opt = array())
 	{
 		$user_agent = (isset($_SERVER['HTTP_USER_AGENT']) ? strtolower($_SERVER['HTTP_USER_AGENT']) : '');
 
@@ -89,12 +112,12 @@ class ArchiveStream
 	 *
 	 * Parameters:
 	 *
-	 * @param string $name path of file in archive (including directory).
-	 * @param string $data contents of file
-     * @param array $opt hash of file options (see above for list)
-     * @access public
+	 * @param string $name Path of file in the archive (including directory).
+	 * @param string $data Contents of the file.
+	 * @param array  $opt  Map of file options (see above for list).
+	 * @return void
 	 */
-	public function add_file($name, $data, $opt = array())
+	public function add_file($name, $data, array $opt = array())
 	{
 		// calculate header attributes
 		$this->meth_str = 'deflate';
@@ -113,13 +136,13 @@ class ArchiveStream
 	/**
 	 * Add file by path
 	 *
-	 * @param string $name name of file in archive (including directory path).
-	 * @param string $path path to file on disk (note: paths should be encoded using
+	 * @param string $name Name of file in archive (including directory path).
+	 * @param string $path Path to file on disk (note: paths should be encoded using
 	 *          UNIX-style forward slashes -- e.g '/path/to/some/file').
-     * @param array $opt hash of file options (see above for list)
-	 * @access public
+	 * @param array  $opt  Map of file options (see above for list).
+	 * @return void
 	 */
-	public function add_file_from_path($name, $path, $opt = array())
+	public function add_file_from_path($name, $path, array $opt = array())
 	{
 		if ($this->opt['large_files_only'] || $this->is_large_file($path))
 		{
@@ -136,9 +159,10 @@ class ArchiveStream
 	}
 
 	/**
-	 * Log an error to be output at the end of the archive
+	 * Log an error to be added to the error log in the archive.
 	 *
-	 * @param string $message error text to display in log file
+	 * @param string $message Error text to add to the log file.
+	 * @return void
 	 */
 	public function push_error($message)
 	{
@@ -146,9 +170,10 @@ class ArchiveStream
 	}
 
 	/**
-	 * Set whether or not all elements in the archive will be placed within one container directory
+	 * Set whether or not all elements in the archive will be placed within one container directory.
 	 *
-	 * @param bool $bool true to use contaner directory, false to prevent using one. Defaults to false
+	 * @param bool $bool True to use contaner directory, false to prevent using one. Defaults to false.
+	 * @return void
 	 */
 	public function set_use_container_dir($bool = false)
 	{
@@ -158,7 +183,8 @@ class ArchiveStream
 	/**
 	 * Set the name filename for the error log file when it's added to the archive
 	 *
-	 * @param string $name the filename for the error log
+	 * @param string $name Filename for the error log.
+	 * @return void
 	 */
 	public function set_error_log_filename($name)
 	{
@@ -171,7 +197,8 @@ class ArchiveStream
 	/**
 	 * Set the first line of text in the error log file
 	 *
-	 * @param string $msg the text to display on the first line of the error log file
+	 * @param string $msg Message to display on the first line of the error log file.
+	 * @return void
 	 */
 	public function set_error_header_text($msg)
 	{
@@ -188,13 +215,13 @@ class ArchiveStream
 	/**
 	 * Add a large file from the given path
 	 *
-	 * @param string $name name of file in archive (including directory path).
-	 * @param string $path path to file on disk (note: paths should be encoded using
+	 * @param  string $name Name of file in archive (including directory path).
+	 * @param  string $path Path to file on disk (note: paths should be encoded using
 	 *          UNIX-style forward slashes -- e.g '/path/to/some/file').
-     * @param array $opt hash of file options (see above for list)
-     * @access protected
+	 * @param  array  $opt  Map of file options (see above for list).
+	 * @return void
 	 */
-	protected function add_large_file($name, $path, $opt = array())
+	protected function add_large_file($name, $path, array $opt = array())
 	{
 		// send file header
 		$this->init_file_stream_transfer($name, filesize($path), $opt);
@@ -219,9 +246,8 @@ class ArchiveStream
 	/**
 	 * Is this file larger than large_file_size?
 	 *
-	 * @param string $path path to file on disk
-	 * @return bool true if large, false if small
-	 * @access protected
+	 * @param string $path Path to file on disk.
+	 * @return bool True if large, false if small.
 	 */
 	protected function is_large_file($path)
 	{
@@ -232,7 +258,7 @@ class ArchiveStream
 	/**
 	 * Send HTTP headers for this stream.
 	 *
-	 * @access private
+	 * @return void
 	 */
 	private function send_http_headers()
 	{
@@ -240,22 +266,32 @@ class ArchiveStream
 		$opt = $this->opt;
 
 		// grab content type from options
-		if ( isset($opt['content_type']) )
+		if (isset($opt['content_type']))
+		{
 			$content_type = $opt['content_type'];
+		}
 		else
+		{
 			$content_type = 'application/x-zip';
+		}
 
 		// grab content type encoding from options and append to the content type option
-		if ( isset($opt['content_type_encoding']) )
+		if (isset($opt['content_type_encoding']))
+		{
 			$content_type .= '; charset=' . $opt['content_type_encoding'];
+		}
 
 		// grab content disposition
 		$disposition = 'attachment';
-		if ( isset($opt['content_disposition']) )
+		if (isset($opt['content_disposition']))
+		{
 			$disposition = $opt['content_disposition'];
+		}
 
-		if ( $this->output_name )
+		if ($this->output_name)
+		{
 			$disposition .= "; filename=\"{$this->output_name}\"";
+		}
 
 		$headers = array(
 			'Content-Type'              => $content_type,
@@ -265,20 +301,25 @@ class ArchiveStream
 			'Content-Transfer-Encoding' => 'binary',
 		);
 
-		foreach ( $headers as $key => $val )
+		foreach ($headers as $key => $val)
+		{
 			header("$key: $val");
+		}
 	}
 
 	/**
 	 * Send string, sending HTTP headers if necessary.
 	 *
-	 * @param string $data data to send
-	 * @access protected
+	 * @param string $data Data to send.
+	 * @return void
 	 */
-	protected function send( $data )
+	protected function send($data)
 	{
 		if ($this->need_headers)
+		{
 			$this->send_http_headers();
+		}
+
 		$this->need_headers = false;
 
 		echo $data;
@@ -286,6 +327,7 @@ class ArchiveStream
 
 	/**
 	 * If errors were encountered, add an error log file to the end of the archive
+	 * @return void
 	 */
 	public function add_error_log()
 	{
@@ -314,19 +356,21 @@ class ArchiveStream
 	/**
 	 * Convert a UNIX timestamp to a DOS timestamp.
 	 *
-	 * @param int $when unix timestamp
+	 * @param int $when Unix timestamp.
 	 * @return string DOS timestamp
-	 * @access protected
 	 */
-	protected function dostime( $when = 0 )
+	protected function dostime($when = 0)
 	{
 		// get date array for timestamp
 		$d = getdate($when);
 
 		// set lower-bound on dates
-		if ($d['year'] < 1980) {
-			$d = array('year' => 1980, 'mon' => 1, 'mday' => 1,
-				'hours' => 0, 'minutes' => 0, 'seconds' => 0);
+		if ($d['year'] < 1980)
+		{
+			$d = array(
+				'year' => 1980, 'mon' => 1, 'mday' => 1,
+				'hours' => 0, 'minutes' => 0, 'seconds' => 0
+			);
 		}
 
 		// remove extra years from 1980
@@ -338,11 +382,10 @@ class ArchiveStream
 	}
 
 	/**
-	 * Split a 64bit integer to two 32bit integers
+	 * Split a 64-bit integer to two 32-bit integers.
 	 *
-	 * @param mixed $value integer or gmp resource
-	 * @return array containing high and low 32bit integers
-	 * @access protected
+	 * @param mixed $value Integer or GMP resource.
+	 * @return array Containing high and low 32-bit integers.
 	 */
 	protected function int64_split($value)
 	{
@@ -370,16 +413,17 @@ class ArchiveStream
 	/**
 	 * Create a format string and argument list for pack(), then call pack() and return the result.
 	 *
-	 * @param array key being the format string and value being the data to pack
-	 * @return string binary packed data returned from pack()
-	 * @access protected
+	 * @param array $fields Key is format string and the value is the data to pack.
+	 * @return string Binary packed data returned from pack().
 	 */
-	protected function pack_fields( $fields )
+	protected function pack_fields(array $fields)
 	{
-		list ($fmt, $args) = array('', array());
+		$fmt = '';
+		$args = array();
 
 		// populate format string and argument list
-		foreach ($fields as $field) {
+		foreach ($fields as $field)
+		{
 			$fmt .= $field[0];
 			$args[] = $field[1];
 		}
@@ -392,13 +436,12 @@ class ArchiveStream
 	}
 
 	/**
-	 * Convert a number between bases via gmp
+	 * Convert a number between bases via GMP.
 	 *
-	 * @param int $num number to convert
-	 * @param int $base_a base to convert from
-	 * @param int $base_b base to convert to
-	 * @return string number in string format
-	 * @access private
+	 * @param int $num    Number to convert.
+	 * @param int $base_a Base to convert from.
+	 * @param int $base_b Base to convert to.
+	 * @return string Number in string format.
 	 */
 	private function gmp_convert($num, $base_a, $base_b)
 	{
@@ -406,9 +449,10 @@ class ArchiveStream
 
 		if (!$gmp_num)
 		{
+			// FIXME: Really? We just die here? Can we detect GMP in __constructor() instead maybe?
 			die("gmp_convert could not convert [$num] from base [$base_a] to base [$base_b]");
 		}
 
-	    return gmp_strval ($gmp_num, $base_b);
+	    return gmp_strval($gmp_num, $base_b);
 	}
 }
