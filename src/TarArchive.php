@@ -1,10 +1,12 @@
 <?php
-require_once(__DIR__ . '/stream.php');
+namespace Barracuda\ArchiveStream;
+
+use Barracuda\ArchiveStream\Archive;
 
 /**
  * Tar-formatted streaming archive.
  */
-class ArchiveStream_Tar extends ArchiveStream
+class TarArchive extends Archive
 {
 	const REGTYPE = 0;
 	const DIRTYPE = 5;

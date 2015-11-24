@@ -10,6 +10,8 @@
         "ext-gmp": "*"
     },
     "autoload": {
-        "files": [ "stream.php", "tarstream.php", "zipstream.php" ]
-    }
+		"psr-4": {
+			"Barracuda\\ArchiveStream\\": "src/"
+		}
+	}
 }

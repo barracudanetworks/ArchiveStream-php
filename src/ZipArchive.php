@@ -1,10 +1,12 @@
 <?php
-require_once(__DIR__ . '/stream.php');
+namespace Barracuda\ArchiveStream;
+
+use Barracuda\ArchiveStream\Archive;
 
 /**
  * Zip-formatted streaming archive.
  */
-class ArchiveStream_Zip extends ArchiveStream
+class ZipArchive extends Archive
 {
 	/**
 	 * Version zip was created by / must be opened by (4.5 for Zip64 support).
