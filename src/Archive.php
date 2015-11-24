@@ -1,9 +1,13 @@
 <?php
+namespace Barracuda\ArchiveStream;
+
+use Barracuda\ArchiveStream\TarArchive as Tar;
+use Barracuda\ArchiveStream\ZipArchive as Zip;
 
 /**
  * A streaming archive object.
  */
-class ArchiveStream
+class Archive
 {
 	/**
 	 * Whether to use the specified base path or not for files in the archive.
@@ -94,16 +98,14 @@ class ArchiveStream
 		// detect windows and use zip
 		if (strpos($user_agent, 'windows') !== false)
 		{
-			require_once(__DIR__ . '/zipstream.php');
 			$filename = (($base_filename === null) ? null : $base_filename . '.zip');
-			return new ArchiveStream_Zip($filename, $opt, $base_filename);
+			return new Zip($filename, $opt, $base_filename);
 		}
 		// fallback to tar
 		else
 		{
-			require_once(__DIR__ . '/tarstream.php');
 			$filename = (($base_filename === null) ? null : $base_filename . '.tar');
-			return new ArchiveStream_Tar($filename, $opt, $base_filename);
+			return new Tar($filename, $opt, $base_filename);
 		}
 	}
 
