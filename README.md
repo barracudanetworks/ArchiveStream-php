@@ -72,7 +72,7 @@ A fast and simple streaming archive files for PHP.  Here's a simple example:
 
 ```php
 // Create a new archive stream object (tar or zip depending on user agent)
-$zip = ArchiveStream::instance_by_useragent('example');
+$zip = \Barracuda\ArchiveStream\Archive::instance_by_useragent('example');
 
 // Create a file named 'hello.txt'
 $zip->add_file('hello.txt', 'This is the contents of hello.txt');
@@ -90,7 +90,7 @@ This method can be used to serve files of any size (GB, TB).
 
 ```php
 // Create a new archive stream object (tar or zip depending on user agent)
-$zip = ArchiveStream::instance_by_useragent('example');
+$zip = \Barracuda\ArchiveStream\Archive::instance_by_useragent('example');
 
 // Initiate the stream transfer of some_image.jpg with size 324134
 $zip->init_file_stream_transfer('some_image.jpg', 324134);
@@ -112,6 +112,10 @@ $zip->add_directory('foo/bar');
 // Finish the zip stream
 $zip->finish();
 ```
+
+## Installation
+
+Simply run `composer install barracudanetworks/archivestream-php` inside your project.
 
 ## Requirements
 
@@ -139,7 +143,7 @@ disable) the HTTP headers.  See the class file for details.
 
 ## License
 
-Original work Copyright 2007-2009 Paul Duncan <pabs@pablotron.org>  
+Original work Copyright 2007-2009 Paul Duncan <pabs@pablotron.org>
 Modified work Copyright 2013-2015 Barracuda Networks, Inc.
 
 Licensed under the MIT License
