@@ -1,27 +1,51 @@
 <?php
+namespace Barracuda\ArchiveStream;
 
-require_once(__DIR__ . '/stream.php');
-
-class ArchiveStream_Zip extends ArchiveStream
+/**
+ * Zip-formatted streaming archive.
+ */
+class ZipArchive extends Archive
 {
-	// options array
+	/**
+	 * Version zip was created by / must be opened by (4.5 for Zip64 support).
+	 */
+	const VERSION = 45;
+
+	/**
+	 * Array of specified options for the archive.
+	 * @var array
+	 */
 	public $opt = array();
 
-	// files tracked for cdr
+	/**
+	 * Files added to the archive, tracked for the CDR.
+	 * @var array
+	 */
 	private $files = array();
 
-	// length of the CDR
+	/**
+	 * Length of the CDR.
+	 * @var int
+	 */
 	private $cdr_len = 0;
 
-	// offset of the CDR
+	/**
+	 * Offset of the CDR.
+	 * @var int
+	 */
 	private $cdr_ofs = 0;
 
-	// will hold both the uncompressed and compressed length
+	/**
+	 * Rolling count of the file length being streamed.
+	 * @var int
+	 */
 	private $len = null;
-	private $zlen = null;
 
-	// version zip created by / must be opened by (4.5 for zip64 support)
-	const VERSION = 45;
+	/**
+	 * Rolling count of the compressed file length being streamed.
+	 * @var int
+	 */
+	private $zlen = null;
 
 	/**
 	 * Create a new ArchiveStream_Zip object.
@@ -38,21 +62,24 @@ class ArchiveStream_Zip extends ArchiveStream
 	/**
 	 * Explicitly adds a directory to the tar (necessary for empty directories)
 	 *
-	 * @param  string $name Name (path) of the directory
-	 * @param  array  $opt  Additional options to set ("type" will be overrided)
+	 * @param  string $name Name (path) of the directory.
+	 * @param  array  $opt  Additional options to set ("type" will be overridden).
 	 * @return void
 	 */
-	function add_directory($name, $opt = array())
+	public function add_directory($name, array $opt = array())
 	{
 		// calculate header attributes
 		$this->meth_str = 'deflate';
 		$meth = 0x08;
+
 		if (substr($name, -1) != '/')
 		{
 			$name = $name . '/';
 		}
+
 		// send header
 		$this->init_file_stream_transfer($name, $size = 0, $opt, $meth);
+
 		// complete the file stream
 		$this->complete_file_stream();
 	}
@@ -60,13 +87,13 @@ class ArchiveStream_Zip extends ArchiveStream
 	/**
 	 * Initialize a file stream
 	 *
-	 * @param string $name file path or just name
-	 * @param int $size size in bytes of the file
-	 * @param array $opt array containing time / type (optional)
-	 * @param int $meth method of compression to use (defaults to store)
-	 * @access public
+	 * @param string $name File path or just name.
+	 * @param int    $size Size in bytes of the file.
+	 * @param array  $opt  Array containing time / type (optional).
+	 * @param int    $meth Method of compression to use (defaults to store).
+	 * @return void
 	 */
-	public function init_file_stream_transfer($name, $size, $opt = array(), $meth = 0x00)
+	public function init_file_stream_transfer($name, $size, array $opt = array(), $meth = 0x00)
 	{
 		// if we're using a container directory, prepend it to the filename
 		if ($this->use_container_dir)
@@ -89,9 +116,9 @@ class ArchiveStream_Zip extends ArchiveStream
 	/**
 	 * Stream the next part of the current file stream.
 	 *
-	 * @param $data raw data to send
-	 * @param bool $single_part used to determin if we can compress
-	 * @access public
+	 * @param string $data        Raw data to send.
+	 * @param bool   $single_part Used to determine if we can compress.
+	 * @return void
 	 */
 	public function stream_file_part($data, $single_part = false)
 	{
@@ -113,7 +140,7 @@ class ArchiveStream_Zip extends ArchiveStream
 	/**
 	 * Complete the current file stream (zip64 format).
 	 *
-	 * @access private
+	 * @return void
 	 */
 	public function complete_file_stream()
 	{
@@ -143,7 +170,7 @@ class ArchiveStream_Zip extends ArchiveStream
 		$this->current_file_stream[3] = $crc;
 		$this->current_file_stream[4] = gmp_strval($this->zlen);
 		$this->current_file_stream[5] = gmp_strval($this->len);
-		$this->current_file_stream[6] += gmp_strval( gmp_add( gmp_init(strlen($ret)), $this->zlen ) );
+		$this->current_file_stream[6] += gmp_strval(gmp_add(gmp_init(strlen($ret)), $this->zlen));
 		ksort($this->current_file_stream);
 
 		// Add to cdr and increment offset - can't call directly because we pass an array of params
@@ -153,7 +180,7 @@ class ArchiveStream_Zip extends ArchiveStream
 	/**
 	 * Finish an archive
 	 *
-	 * @access public
+	 * @return void
 	 */
 	public function finish()
 	{
@@ -172,12 +199,13 @@ class ArchiveStream_Zip extends ArchiveStream
 	/**
 	 * Add initial headers for file stream
 	 *
-	 * @param string $name file path or just name
-	 * @param int $size size in bytes of the file
-	 * @param array $opt array containing time
-	 * @param int $meth method of compression to use
+	 * @param string $name File path or just name.
+	 * @param int    $size Size in bytes of the file.
+	 * @param array  $opt  Array containing time.
+	 * @param int    $meth Method of compression to use.
+	 * @return void
 	 */
-	protected function add_stream_file_header($name, $size, $opt, $meth)
+	protected function add_stream_file_header($name, $size, array $opt, $meth)
 	{
 		// strip leading slashes from file name
 		// (fixes bug in windows archive viewer)
@@ -193,7 +221,8 @@ class ArchiveStream_Zip extends ArchiveStream
 		// to figure out the correct sizes, etc.
 		$genb = 0x08;
 
-		if (mb_check_encoding($name, "UTF-8") && !mb_check_encoding($name, "ASCII")) {
+		if (mb_check_encoding($name, "UTF-8") && !mb_check_encoding($name, "ASCII"))
+		{
 			// Sets Bit 11: Language encoding flag (EFS).  If this bit is set,
 			// the filename and comment fields for this file
 			// MUST be encoded using UTF-8. (see APPENDIX D)
@@ -232,32 +261,32 @@ class ArchiveStream_Zip extends ArchiveStream
 	}
 
 	/**
-	 * Save file attributes for trailing CDR record
+	 * Save file attributes for trailing CDR record.
 	 *
-	 * @param string $name path / name of the file
-	 * @param array $opt array containing time
-	 * @param int $meth method of compression to use
-	 * @param string $crc computed checksum of the file
-	 * @param int $zlen compressed size
-	 * @param int $len uncompressed size
-	 * @param int $rec_size size of the record
-	 * @param int $genb general purpose bit flag
-	 * @access private
+	 * @param string $name    Path / name of the file.
+	 * @param array  $opt     Array containing time.
+	 * @param int    $meth    Method of compression to use.
+	 * @param string $crc     Computed checksum of the file.
+	 * @param int    $zlen    Compressed size.
+	 * @param int    $len     Uncompressed size.
+	 * @param int    $rec_len Size of the record.
+	 * @param int    $genb    General purpose bit flag.
+	 * @return void
 	 */
-	private function add_to_cdr($name, $opt, $meth, $crc, $zlen, $len, $rec_len, $genb = 0)
+	private function add_to_cdr($name, array $opt, $meth, $crc, $zlen, $len, $rec_len, $genb = 0)
 	{
 		$this->files[] = array($name, $opt, $meth, $crc, $zlen, $len, $this->cdr_ofs, $genb);
 		$this->cdr_ofs += $rec_len;
 	}
 
 	/**
-	 * Send CDR record for specified file (zip64 format).
+	 * Send CDR record for specified file (Zip64 format).
 	 *
-	 * @param array $args array of args
-	 * @see add_to_cdr() for details of the args
-	 * @access private
+	 * @see add_to_cdr() for options to pass in $args.
+	 * @param array $args Array of argumentss.
+	 * @return void
 	 */
-	private function add_cdr_file($args)
+	private function add_cdr_file(array $args)
 	{
 		list($name, $opt, $meth, $crc, $zlen, $len, $ofs, $genb) = $args;
 
@@ -309,10 +338,9 @@ class ArchiveStream_Zip extends ArchiveStream
 	}
 
 	/**
-	 * Adds Zip64 end of central directory record
+	 * Adds Zip64 end of central directory record.
 	 *
-	 * @param int $cdr_start the offset where the cdr starts
-	 * @access private
+	 * @return void
 	 */
 	private function add_cdr_eof_zip64()
 	{
@@ -347,7 +375,7 @@ class ArchiveStream_Zip extends ArchiveStream
 	/**
 	 * Add location record for ZIP64 central directory
 	 *
-	 * @access private
+	 * @return void
 	 */
 	private function add_cdr_eof_locator_zip64()
 	{
@@ -370,10 +398,10 @@ class ArchiveStream_Zip extends ArchiveStream
 	 * point to the corresponding values in the ZIP64 CDR. The optional comment
 	 * still goes in this CDR however.
 	 *
-	 * @param array $opt options array that may contain a comment
-	 * @access private
+	 * @param array $opt Options array that may contain a comment.
+	 * @return void
 	 */
-	private function add_cdr_eof($opt = null)
+	private function add_cdr_eof(array $opt = null)
 	{
 		// grab comment (if specified)
 		$comment = '';
@@ -400,10 +428,10 @@ class ArchiveStream_Zip extends ArchiveStream
 	/**
 	 * Add CDR (Central Directory Record) footer.
 	 *
-     * @param array $opt options array that may contain a comment
-	 * @access private
+	 * @param array $opt Options array that may contain a comment.
+	 * @return void
 	 */
-	private function add_cdr($opt = null)
+	private function add_cdr(array $opt = null)
 	{
 		foreach ($this->files as $file)
 		{
@@ -419,9 +447,9 @@ class ArchiveStream_Zip extends ArchiveStream
 	/**
 	 * Clear all internal variables.
 	 *
-	 * Note: that the stream object is not usable after this.
+	 * Note: the archive object is unusable after this.
 	 *
-	 * @access private
+	 * @return void
 	 */
 	private function clear()
 	{
