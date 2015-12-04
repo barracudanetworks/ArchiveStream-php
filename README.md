@@ -1,4 +1,4 @@
-# ArchiveStream 0.3.0
+# ArchiveStream 0.3.2
 
 A library for dynamically streaming dynamic tar or zip files without the need to have the complete file stored on the server. You can specify if you want a tar or a zip; or if you want to have the library figure out the best option based on the user agent string.
 
@@ -139,7 +139,7 @@ disable) the HTTP headers.  See the class file for details.
 
 ## License
 
-Original work Copyright 2007-2009 Paul Duncan <pabs@pablotron.org>  
+Original work Copyright 2007-2009 Paul Duncan <pabs@pablotron.org>
 Modified work Copyright 2013-2015 Barracuda Networks, Inc.
 
 Licensed under the MIT License
