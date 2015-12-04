@@ -1,8 +1,6 @@
 <?php
 namespace Barracuda\ArchiveStream;
 
-use Barracuda\ArchiveStream\Archive;
-
 /**
  * Tar-formatted streaming archive.
  */
