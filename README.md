@@ -115,7 +115,7 @@ $zip->finish();
 
 ## Installation
 
-Simply run `composer install barracudanetworks/archivestream-php` inside your project.
+Simply run `composer require barracudanetworks/archivestream-php` inside your project.
 
 ## Requirements
 
