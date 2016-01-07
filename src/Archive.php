@@ -80,7 +80,8 @@ class Archive
 		// turn off output buffering
 		while (ob_get_level() > 0)
 		{
-			ob_end_flush();
+			// throw away any output left in the buffer
+			ob_end_clean();
 		}
 	}
 
