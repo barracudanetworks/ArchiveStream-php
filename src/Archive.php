@@ -1,6 +1,8 @@
 <?php
 namespace Barracuda\ArchiveStream;
 
+use GMP;
+
 use Barracuda\ArchiveStream\TarArchive as Tar;
 use Barracuda\ArchiveStream\ZipArchive as Zip;
 
@@ -393,7 +395,7 @@ class Archive
 	protected function int64_split($value)
 	{
 		// gmp
-		if (is_resource($value))
+		if (is_resource($value) || $value instanceof GMP)
 		{
 			$hex  = str_pad(gmp_strval($value, 16), 16, '0', STR_PAD_LEFT);
 
