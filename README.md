@@ -19,6 +19,7 @@ $response = $response->withBody(new Psr7Stream(new ZipStream($zipStream)));
 
   * PHP >=5.6.0
   * gmp extension
+  * psr/http-message
 
 ## Limitations
 
