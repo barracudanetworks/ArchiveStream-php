@@ -21,11 +21,6 @@ $response = $response->withBody(new Psr7Stream(new ZipStream($zipStream)));
  * Only the Zip64 (version 4.5 of the Zip specification) format is supported.
  * Files cannot be resumed if a download fails before finishing.
 
-### Other
-
-You can also add comments, modify file timestamps, and customize (or
-disable) the HTTP headers.  See the class file for details.
-
 ## Contributors
 - Paul Duncan - Original author
 - Daniel Bergey
