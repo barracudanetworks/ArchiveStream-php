@@ -2,6 +2,10 @@
 
 Stream a ZIP file (memory efficient) as a PSR-7 message
 
+[![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/genkgo/archive-stream/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/genkgo/archive-stream/)
+[![Code Coverage](https://scrutinizer-ci.com/g/genkgo/archive-stream/badges/coverage.png?b=master)](https://scrutinizer-ci.com/g/genkgo/archive-stream/)
+[![Build Status](https://travis-ci.org/genkgo/archive-stream.png?branch=master)](https://travis-ci.org/genkgo/archive-stream)
+
 ## Getting Started
 
 ```php
