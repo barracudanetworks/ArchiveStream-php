@@ -26,7 +26,7 @@ final class ZipStreamTest extends AbstractTestCase {
         fclose($fileStream);
 
         $zip = new \ZipArchive();
-        $result = $zip->open($filename, \ZipArchive::CREATE | \ZipArchive::OVERWRITE);
+        $result = $zip->open($filename);
 
         $this->assertTrue($result);
         $this->assertEquals(1, $zip->numFiles);
@@ -52,7 +52,7 @@ final class ZipStreamTest extends AbstractTestCase {
         fclose($fileStream);
 
         $zip = new \ZipArchive();
-        $result = $zip->open($filename, \ZipArchive::CREATE | \ZipArchive::OVERWRITE);
+        $result = $zip->open($filename);
 
         $this->assertTrue($result);
         $this->assertEquals(1, $zip->numFiles);
@@ -78,7 +78,7 @@ final class ZipStreamTest extends AbstractTestCase {
         fclose($fileStream);
 
         $zip = new \ZipArchive();
-        $result = $zip->open($filename, \ZipArchive::CREATE | \ZipArchive::OVERWRITE);
+        $result = $zip->open($filename);
 
         $this->assertTrue($result);
         $this->assertEquals(2, $zip->numFiles);
