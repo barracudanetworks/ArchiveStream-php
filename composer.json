@@ -1,18 +1,29 @@
 {
-    "name": "barracudanetworks/archivestream-php",
+    "name": "genkgo/archive-stream",
     "type": "library",
-    "description": "A library for dynamically streaming dynamic tar or zip files without the need to have the complete file stored on the server.",
-    "keywords": ["zip", "tar", "archive", "stream", "php"],
-    "homepage": "https://github.com/barracudanetworks/ArchiveStream-php",
+    "description": "Stream a ZIP file (memory efficient) as a PSR-7 message",
+    "keywords": ["zip", "archive", "stream", "php", "psr-7"],
+    "homepage": "https://github.com/genkgo/archive-stream",
     "license": "MIT",
     "require": {
-        "php": ">=5.1.2",
-        "ext-gmp": "*",
-        "ext-mbstring": "*"
+        "php": ">=5.6.0",
+        "psr/http-message": "~1.0.0",
+        "ext-gmp": "*"
+    },
+    "provide": {
+        "psr/http-message-implementation": "1.0.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit" : "~4.0"
     },
     "autoload": {
 		"psr-4": {
-			"Barracuda\\ArchiveStream\\": "src/"
+			"Genkgo\\ArchiveStream\\": "src/"
+		}
+	},
+    "autoload-dev": {
+		"psr-4": {
+			"Genkgo\\ArchiveStream\\": "tests/"
 		}
 	}
 }
