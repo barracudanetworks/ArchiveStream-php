@@ -18,7 +18,7 @@ final class Psr7Test extends AbstractTestCase {
         file_put_contents($filename, $psr7Stream->getContents());
 
         $zip = new \ZipArchive();
-        $result = $zip->open($filename);
+        $result = $zip->open($filename, \ZipArchive::CREATE | \ZipArchive::OVERWRITE);
 
         $this->assertTrue($result);
         $this->assertEquals(1, $zip->numFiles);
@@ -40,7 +40,7 @@ final class Psr7Test extends AbstractTestCase {
         fclose($fileStream);
 
         $zip = new \ZipArchive();
-        $result = $zip->open($filename);
+        $result = $zip->open($filename, \ZipArchive::CREATE | \ZipArchive::OVERWRITE);
 
         $this->assertTrue($result);
         $this->assertEquals(1, $zip->numFiles);
