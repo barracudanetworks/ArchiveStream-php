@@ -20,6 +20,7 @@ composer require genkgo/archive-stream
 <?php
 use Genkgo\ArchiveStream\Archive;
 use Genkgo\ArchiveStream\CallbackStringContent;
+use Genkgo\ArchiveStream\EmptyDirectory;
 use Genkgo\ArchiveStream\FileContent;
 use Genkgo\ArchiveStream\Psr7Stream;
 use Genkgo\ArchiveStream\StringContent;
