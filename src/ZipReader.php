@@ -176,6 +176,7 @@ final class ZipReader implements ArchiveReader
 
         $stream = new \SplTempFileObject();
         $stream->fwrite($ret . $name . $extra);
+        $stream->rewind();
         return $stream;
     }
 
@@ -192,7 +193,7 @@ final class ZipReader implements ArchiveReader
 
         $stream = new \SplTempFileObject();
         $stream->fwrite($data);
-
+        $stream->rewind();
         return $stream;
     }
 
@@ -232,6 +233,7 @@ final class ZipReader implements ArchiveReader
 
         $stream = new \SplTempFileObject();
         $stream->fwrite($data);
+        $stream->rewind();
         return $stream;
     }
 
@@ -309,6 +311,7 @@ final class ZipReader implements ArchiveReader
 
         $stream = new \SplTempFileObject();
         $stream->fwrite($ret);
+        $stream->rewind();
         return $stream;
     }
 
@@ -346,6 +349,7 @@ final class ZipReader implements ArchiveReader
         $ret = PackHelper::packFields($fields);
         $stream = new \SplTempFileObject();
         $stream->fwrite($ret);
+        $stream->rewind();
         return $stream;
     }
 
@@ -369,6 +373,7 @@ final class ZipReader implements ArchiveReader
         $ret = PackHelper::packFields($fields);
         $stream = new \SplTempFileObject();
         $stream->fwrite($ret);
+        $stream->rewind();
         return $stream;
     }
 
@@ -396,6 +401,7 @@ final class ZipReader implements ArchiveReader
         $ret = PackHelper::packFields($fields) . $comment;
         $stream = new \SplTempFileObject();
         $stream->fwrite($ret);
+        $stream->rewind();
         return $stream;
     }
 
