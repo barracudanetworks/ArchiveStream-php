@@ -114,7 +114,7 @@ final class Psr7Stream implements StreamInterface
      */
     public function rewind()
     {
-        throw new \RuntimeException('Cannot rewind archive stream');
+        $this->generator = null;
     }
 
     /**
@@ -159,6 +159,7 @@ final class Psr7Stream implements StreamInterface
             }
 
             $this->resource = $this->generator->current();
+            $this->resource->rewind();
         }
 
         return $this->resource->fread($length);
@@ -194,6 +195,7 @@ final class Psr7Stream implements StreamInterface
         if ($this->generator === null) {
             $this->generator = $this->delegatedStream->read($this->blockSize);
             $this->resource = $this->generator->current();
+            $this->resource->rewind();
         }
     }
 }
