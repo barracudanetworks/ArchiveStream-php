@@ -23,7 +23,7 @@ use Genkgo\ArchiveStream\CallbackStringContent;
 use Genkgo\ArchiveStream\FileContent;
 use Genkgo\ArchiveStream\Psr7Stream;
 use Genkgo\ArchiveStream\StringContent;
-use Genkgo\ArchiveStream\ZipStream;
+use Genkgo\ArchiveStream\ZipReader;
 
 $archive = (new Archive())
     ->withContent(new CallbackStringContent('callback.txt', function () {
@@ -34,7 +34,7 @@ $archive = (new Archive())
     ->withContent(new EmptyDirectory('directory'));
 
 $response = $response->withBody(
-    new Psr7Stream(new ZipStream($archive))
+    new Psr7Stream(new ZipReader($archive))
 );
 ```
 
