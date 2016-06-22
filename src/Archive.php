@@ -5,30 +5,38 @@ namespace Genkgo\ArchiveStream;
  * Class Archive
  * @package Genkgo\ArchiveStream
  */
-final class Archive {
-
+final class Archive
+{
     /**
      * @var ContentInterface[]
      */
     private $content = [];
 
     /**
-     * @var array
+     * @var string
      */
-    private $directories = [];
+    private $comment;
 
     /**
      * @param ContentInterface $content
+     * @return Archive
      */
-    public function addContent(ContentInterface $content) {
-        $this->content[] = $content;
+    public function withContent(ContentInterface $content)
+    {
+        $clone = clone $this;
+        $clone->content[] = $content;
+        return $clone;
     }
 
     /**
-     * @param $name
+     * @param string $comment
+     * @return Archive
      */
-    public function addDirectory($name) {
-        $this->directories[] = $name;
+    public function withComment($comment)
+    {
+        $clone = clone $this;
+        $clone->comment = $comment;
+        return $clone;
     }
 
     /**
@@ -40,10 +48,10 @@ final class Archive {
     }
 
     /**
-     * @return array
+     * @return string
      */
-    public function getDirectories()
+    public function getComment()
     {
-        return $this->directories;
+        return $this->comment;
     }
 }

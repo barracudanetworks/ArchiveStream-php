@@ -10,9 +10,21 @@ Stream a ZIP file (memory efficient) as a PSR-7 message
 
 ```php
 <?php
-$archive = new Archive();
-$archive->addContent(new FileContent('in_zip_name.txt', 'local/file/name.txt'));
-$response = $response->withBody(new Psr7Stream(new ZipStream($zipStream)));
+use Genkgo\ArchiveStream\Archive;
+use Genkgo\ArchiveStream\CallbackStringContent;
+use Genkgo\ArchiveStream\FileContent;
+use Genkgo\ArchiveStream\Psr7Stream;
+use Genkgo\ArchiveStream\StringContent;
+use Genkgo\ArchiveStream\ZipStream;
+
+$archive = (new Archive())
+    ->withContent(new CallbackStringContent('in_zip_name.txt', function () {
+        return 'data';
+    }))
+    ->withContent(new StringContent('in_zip_name.txt', 'data'))
+    ->withContent(new FileContent('in_zip_name.txt', 'local/file/name.txt'));
+
+$response = $response->withBody(new Psr7Stream(new ZipStream($archive)));
 ```
 
 ## Requirements

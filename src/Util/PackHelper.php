@@ -3,22 +3,21 @@ namespace Genkgo\ArchiveStream\Util;
 
 use GMP;
 
-final class PackHelper {
-
+final class PackHelper
+{
     /**
      * Convert a UNIX timestamp to a DOS timestamp.
      *
-     * @param int $when Unix timestamp.
+     * @param \DateTimeImmutable $date
      * @return string DOS timestamp
      */
-    public static function dostime()
+    public static function dostime(\DateTimeImmutable $date)
     {
         // get date array for timestamp
-        $d = getdate(time());
+        $d = getdate($date->format('U'));
 
         // set lower-bound on dates
-        if ($d['year'] < 1980)
-        {
+        if ($d['year'] < 1980) {
             $d = array(
                 'year' => 1980, 'mon' => 1, 'mday' => 1,
                 'hours' => 0, 'minutes' => 0, 'seconds' => 0
@@ -45,8 +44,7 @@ final class PackHelper {
         $args = array();
 
         // populate format string and argument list
-        foreach ($fields as $field)
-        {
+        foreach ($fields as $field) {
             $fmt .= $field[0];
             $args[] = $field[1];
         }
@@ -67,16 +65,14 @@ final class PackHelper {
     public static function int64Split($value)
     {
         // gmp
-        if (is_resource($value) || $value instanceof GMP)
-        {
+        if (is_resource($value) || $value instanceof GMP) {
             $hex  = str_pad(gmp_strval($value, 16), 16, '0', STR_PAD_LEFT);
 
             $high = self::gmpConvert(substr($hex, 0, 8), 16, 10);
             $low  = self::gmpConvert(substr($hex, 8, 8), 16, 10);
         }
         // int
-        else
-        {
+        else {
             $left  = 0xffffffff00000000;
             $right = 0x00000000ffffffff;
 
@@ -100,5 +96,4 @@ final class PackHelper {
         $gmp_num = gmp_init($num, $base_a);
         return gmp_strval($gmp_num, $base_b);
     }
-
 }

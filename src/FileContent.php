@@ -5,8 +5,8 @@ namespace Genkgo\ArchiveStream;
  * Class StringContent
  * @package Genkgo\ArchiveStream
  */
-final class FileContent implements ContentInterface {
-
+final class FileContent implements ContentInterface
+{
     /**
      * @var string
      */
@@ -40,5 +40,29 @@ final class FileContent implements ContentInterface {
     public function getData()
     {
         return fopen($this->fileName, 'r');
+    }
+
+    /**
+     * @return \DateTimeImmutable
+     */
+    public function getModifiedAt()
+    {
+        return new \DateTimeImmutable('@' . filemtime($this->fileName));
+    }
+
+    /**
+     * @return int
+     */
+    public function getType()
+    {
+        return ContentInterface::FILE;
+    }
+
+    /**
+     * @return string
+     */
+    public function getEncoding()
+    {
+        return 'UTF-8';
     }
 }

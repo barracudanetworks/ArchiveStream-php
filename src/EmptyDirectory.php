@@ -1,29 +1,31 @@
 <?php
 namespace Genkgo\ArchiveStream;
 
+use Genkgo\ArchiveStream\Exception\ContentWithoutDataException;
+
 /**
- * Class StringContent
+ * Class EmptyDirectory
  * @package Genkgo\ArchiveStream
  */
-final class StringContent implements ContentInterface
+final class EmptyDirectory implements ContentInterface
 {
+    /**
+     * @var \DateTimeImmutable
+     */
+    private $modifiedAt;
     /**
      * @var string
      */
     private $name;
-    /**
-     * @var string
-     */
-    private $data;
 
     /**
      * @param $name
-     * @param $data
+     * @param \DateTimeImmutable $modifiedAt
      */
-    public function __construct($name, $data)
+    public function __construct($name, \DateTimeImmutable $modifiedAt)
     {
+        $this->modifiedAt = $modifiedAt;
         $this->name = $name;
-        $this->data = $data;
     }
 
     /**
@@ -36,10 +38,11 @@ final class StringContent implements ContentInterface
 
     /**
      * @return resource
+     * @throws ContentWithoutDataException
      */
     public function getData()
     {
-        return fopen('data://text/plain,' . $this->data, 'r');
+        throw new ContentWithoutDataException('Empty directory has no data');
     }
 
     /**
@@ -47,7 +50,7 @@ final class StringContent implements ContentInterface
      */
     public function getModifiedAt()
     {
-        return new \DateTimeImmutable();
+        return $this->modifiedAt;
     }
 
     /**
@@ -55,7 +58,7 @@ final class StringContent implements ContentInterface
      */
     public function getType()
     {
-        return ContentInterface::FILE;
+        return ContentInterface::DIRECTORY;
     }
 
     /**
@@ -63,6 +66,6 @@ final class StringContent implements ContentInterface
      */
     public function getEncoding()
     {
-        return 'UTF-8';
+        return 'ASCII';
     }
 }

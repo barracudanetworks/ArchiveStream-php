@@ -7,10 +7,10 @@ use Psr\Http\Message\StreamInterface;
  * Class Psr7Stream
  * @package Genkgo\ArchiveStream
  */
-final class Psr7Stream implements StreamInterface {
-
+final class Psr7Stream implements StreamInterface
+{
     /**
-     * @var ArchiveStream
+     * @var ArchiveReader
      */
     private $delegatedStream;
     /**
@@ -31,10 +31,10 @@ final class Psr7Stream implements StreamInterface {
     private $resource;
 
     /**
-     * @param ArchiveStream $delegatedStream
+     * @param ArchiveReader $delegatedStream
      * @param int $blockSize
      */
-    public function __construct(ArchiveStream $delegatedStream, $blockSize = 1048576)
+    public function __construct(ArchiveReader $delegatedStream, $blockSize = 1048576)
     {
         $this->delegatedStream = $delegatedStream;
         $this->blockSize = $blockSize;
@@ -189,7 +189,8 @@ final class Psr7Stream implements StreamInterface {
     /**
      *
      */
-    private function initializeBeforeRead() {
+    private function initializeBeforeRead()
+    {
         if ($this->generator === null) {
             $this->generator = $this->delegatedStream->read($this->blockSize);
             $this->resource = $this->generator->current();

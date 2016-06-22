@@ -5,16 +5,16 @@ use Genkgo\ArchiveStream\AbstractTestCase;
 use Genkgo\ArchiveStream\Archive;
 use Genkgo\ArchiveStream\Psr7Stream;
 use Genkgo\ArchiveStream\StringContent;
-use Genkgo\ArchiveStream\ZipStream;
+use Genkgo\ArchiveStream\ZipReader;
 
-final class Psr7Test extends AbstractTestCase {
-
-    public function testStreamGetContents () {
-        $archive = new Archive();
-        $archive->addContent(new StringContent('test.txt', 'content'));
+final class Psr7Test extends AbstractTestCase
+{
+    public function testStreamGetContents()
+    {
+        $archive = (new Archive())->withContent(new StringContent('test.txt', 'content'));
 
         $filename = tempnam(sys_get_temp_dir(), 'zip');
-        $psr7Stream = new Psr7Stream(new ZipStream($archive));
+        $psr7Stream = new Psr7Stream(new ZipReader($archive));
         file_put_contents($filename, $psr7Stream->getContents());
 
         $zip = new \ZipArchive();
@@ -26,13 +26,14 @@ final class Psr7Test extends AbstractTestCase {
         $this->assertEquals('content', $zip->getFromIndex(0));
     }
 
-    public function testStreamRead () {
+    public function testStreamRead()
+    {
         $archive = new Archive();
-        $archive->addContent(new StringContent('test.txt', 'content'));
+        $archive = (new Archive())->withContent(new StringContent('test.txt', 'content'));
 
         $filename = tempnam(sys_get_temp_dir(), 'zip');
         $fileStream = fopen($filename, 'r+');
-        $psr7Stream = new Psr7Stream(new ZipStream($archive));
+        $psr7Stream = new Psr7Stream(new ZipReader($archive));
 
         while (!$psr7Stream->eof()) {
             fwrite($fileStream, $psr7Stream->read(1));

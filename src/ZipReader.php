@@ -1,14 +1,15 @@
 <?php
 namespace Genkgo\ArchiveStream;
 
+use Genkgo\ArchiveStream\Exception\ContentWithoutDataException;
 use Genkgo\ArchiveStream\Util\PackHelper;
 
 /**
  * Class ZipStream
  * @package Genkgo\ArchiveStream
  */
-final class ZipStream implements ArchiveStream {
-
+final class ZipReader implements ArchiveReader
+{
     /**
      * Version zip was created by / must be opened by (4.5 for Zip64 support).
      */
@@ -59,40 +60,30 @@ final class ZipStream implements ArchiveStream {
      * @param $blockSize
      * @return \Generator|\SplTempFileObject[]
      */
-    public function read($blockSize) {
+    public function read($blockSize)
+    {
         foreach ($this->archive->getContents() as $content) {
-            yield $this->initializeResourceStream($content->getName());
-
-            $resource = $content->getData();
-            while ($data = fread($resource, $blockSize))
-            {
-                yield $this->streamResourceData($data);
+            if ($content->getType() === ContentInterface::DIRECTORY) {
+                yield $this->initializeResourceStream($content, 0x08);
+            } else {
+                yield $this->initializeResourceStream($content, 0x00);
             }
 
-            // close input file
-            fclose($resource);
+            try {
+                $resource = $content->getData();
+                while ($data = fread($resource, $blockSize)) {
+                    yield $this->streamResourceData($data);
+                }
+
+                // close input file
+                fclose($resource);
+            } catch (ContentWithoutDataException $e) {
+            }
 
             yield $this->completeResourceStream();
         }
 
-        foreach ($this->archive->getDirectories() as $directory) {
-            // calculate header attributes
-            $method = 0x08;
-
-            if (substr($directory, -1) != '/')
-            {
-                $directory = $directory . '/';
-            }
-
-            // send header
-            yield $this->initializeResourceStream($directory, $method);
-
-            // complete the file stream
-            yield $this->completeResourceStream();
-        }
-
-        foreach ($this->files as $file)
-        {
+        foreach ($this->files as $file) {
             yield $this->addCdrFile($file);
         }
 
@@ -106,11 +97,11 @@ final class ZipStream implements ArchiveStream {
     /**
      * Initialize a file stream
      *
-     * @param string $name File path or just name.
-     * @param int    $method Method of compression to use (defaults to store).
+     * @param ContentInterface $content
+     * @param int $method Method of compression to use (defaults to store).
      * @return string
      */
-    private function initializeResourceStream($name, $method = 0x00)
+    private function initializeResourceStream(ContentInterface $content, $method)
     {
         $algorithm = 'crc32b';
 
@@ -120,33 +111,37 @@ final class ZipStream implements ArchiveStream {
         $this->hash_ctx = hash_init($algorithm);
 
         // Send file header
-        return $this->sendFileHeader($name, $method);
+        return $this->sendFileHeader($content, $method);
     }
 
     /**
      * Add initial headers for file stream
      *
-     * @param string $name File path or just name.
-     * @param int    $method Method of compression to use.
+     * @param ContentInterface $content
+     * @param int $method Method of compression to use.
      * @return string
      */
-    private function sendFileHeader($name,  $method)
+    private function sendFileHeader(ContentInterface $content, $method)
     {
+        $name = $content->getName();
+        if ($content->getType() === ContentInterface::DIRECTORY && substr($name, -1) !== '/') {
+            $name = $name . '/';
+        }
+
         // strip leading slashes from file name
         // (fixes bug in windows archive viewer)
         $name = preg_replace('/^\\/+/', '', $name);
         $extra = pack('vVVVV', 1, 0, 0, 0, 0);
 
         // create dos timestamp
-        $dts = PackHelper::dostime();
+        $dts = PackHelper::dostime($content->getModifiedAt());
 
         // Sets bit 3, which means CRC-32, uncompressed and compresed length
         // are put in the data descriptor following the data. This gives us time
         // to figure out the correct sizes, etc.
         $genb = 0x08;
 
-        if (mb_check_encoding($name, "UTF-8") && !mb_check_encoding($name, "ASCII"))
-        {
+        if ($content->getEncoding() === 'UTF-8') {
             // Sets Bit 11: Language encoding flag (EFS).  If this bit is set,
             // the filename and comment fields for this file
             // MUST be encoded using UTF-8. (see APPENDIX D)
@@ -286,10 +281,10 @@ final class ZipStream implements ArchiveStream {
         $extra = pack('vv', 1, strlen($extra_zip64)) . $extra_zip64;
 
         // get attributes
-        $comment = '';
+        $comment = $this->archive->getComment();
 
         // get dos timestamp
-        $dts = PackHelper::dostime();
+        $dts = PackHelper::dostime(new \DateTimeImmutable());
 
         $fields = [                      // (from V,F of APPNOTE.TXT)
             ['V', 0x02014b50],           // central file header signature
@@ -392,9 +387,7 @@ final class ZipStream implements ArchiveStream {
      */
     private function addCdrEof()
     {
-        // grab comment (if specified)
-        $comment = '';
-
+        $comment = $this->archive->getComment();
         $fields = [                    // (from V,F of APPNOTE.TXT)
             ['V', 0x06054b50],         // end of central file header signature
             ['v', 0xFFFF],             // this disk number (0xFFFF to look in zip64 cdr)

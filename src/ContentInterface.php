@@ -1,7 +1,12 @@
 <?php
 namespace Genkgo\ArchiveStream;
 
-interface ContentInterface {
+use Genkgo\ArchiveStream\Exception\ContentWithoutDataException;
+
+interface ContentInterface
+{
+    const FILE = 0;
+    const DIRECTORY = 1;
 
     /**
      * @return string
@@ -10,7 +15,22 @@ interface ContentInterface {
 
     /**
      * @return resource
+     * @throws ContentWithoutDataException
      */
     public function getData();
 
+    /**
+     * @return \DateTimeImmutable
+     */
+    public function getModifiedAt();
+
+    /**
+     * @return int
+     */
+    public function getType();
+
+    /**
+     * @return string
+     */
+    public function getEncoding();
 }

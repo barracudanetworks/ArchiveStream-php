@@ -5,8 +5,8 @@ namespace Genkgo\ArchiveStream;
  * Class CallbackContent
  * @package Genkgo\ArchiveStream
  */
-final class CallbackStringContent implements ContentInterface {
-
+final class CallbackStringContent implements ContentInterface
+{
     /**
      * @var string
      */
@@ -40,5 +40,29 @@ final class CallbackStringContent implements ContentInterface {
     public function getData()
     {
         return fopen('data://text/plain,' . call_user_func($this->callback), 'r');
+    }
+
+    /**
+     * @return \DateTimeImmutable
+     */
+    public function getModifiedAt()
+    {
+        return new \DateTimeImmutable();
+    }
+
+    /**
+     * @return int
+     */
+    public function getType()
+    {
+        return ContentInterface::FILE;
+    }
+
+    /**
+     * @return string
+     */
+    public function getEncoding()
+    {
+        return 'UTF-8';
     }
 }
