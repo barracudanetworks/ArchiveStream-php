@@ -1,4 +1,4 @@
-# ArchiveStream 2.0.0
+# ArchiveStream Message Body (PSR-7)
 
 Stream a ZIP file (memory efficient) as a PSR-7 message
 
