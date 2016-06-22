@@ -2,7 +2,6 @@
 namespace Genkgo\ArchiveStream\Unit;
 
 use Genkgo\ArchiveStream\AbstractTestCase;
-use Genkgo\ArchiveStream\FileContent;
 use Genkgo\ArchiveStream\ResourceContent;
 
 final class ResourceContentTest extends AbstractTestCase
