@@ -18,13 +18,16 @@ use Genkgo\ArchiveStream\StringContent;
 use Genkgo\ArchiveStream\ZipStream;
 
 $archive = (new Archive())
-    ->withContent(new CallbackStringContent('in_zip_name.txt', function () {
+    ->withContent(new CallbackStringContent('callback.txt', function () {
         return 'data';
     }))
-    ->withContent(new StringContent('in_zip_name.txt', 'data'))
-    ->withContent(new FileContent('in_zip_name.txt', 'local/file/name.txt'));
+    ->withContent(new StringContent('string.txt', 'data'))
+    ->withContent(new FileContent('file.txt', 'local/file/name.txt'));
+    ->withContent(new EmptyDirectory('directory'));
 
-$response = $response->withBody(new Psr7Stream(new ZipStream($archive)));
+$response = $response->withBody(
+    new Psr7Stream(new ZipStream($archive))
+);
 ```
 
 ## Requirements

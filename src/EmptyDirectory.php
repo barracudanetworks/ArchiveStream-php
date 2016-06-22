@@ -10,21 +10,15 @@ use Genkgo\ArchiveStream\Exception\ContentWithoutDataException;
 final class EmptyDirectory implements ContentInterface
 {
     /**
-     * @var \DateTimeImmutable
-     */
-    private $modifiedAt;
-    /**
      * @var string
      */
     private $name;
 
     /**
      * @param $name
-     * @param \DateTimeImmutable $modifiedAt
      */
-    public function __construct($name, \DateTimeImmutable $modifiedAt)
+    public function __construct($name)
     {
-        $this->modifiedAt = $modifiedAt;
         $this->name = $name;
     }
 
@@ -50,7 +44,7 @@ final class EmptyDirectory implements ContentInterface
      */
     public function getModifiedAt()
     {
-        return $this->modifiedAt;
+        return new \DateTimeImmutable();
     }
 
     /**

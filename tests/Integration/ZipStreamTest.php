@@ -37,7 +37,7 @@ final class ZipStreamTest extends AbstractTestCase
 
     public function testCreateEmptyDirectory()
     {
-        $archive = (new Archive())->withContent(new EmptyDirectory('empty', new \DateTimeImmutable()));
+        $archive = (new Archive())->withContent(new EmptyDirectory('empty'));
 
         $filename = tempnam(sys_get_temp_dir(), 'zip');
         $fileStream = fopen($filename, 'r+');
@@ -63,7 +63,7 @@ final class ZipStreamTest extends AbstractTestCase
     public function testCreateFileEmptyDirectory()
     {
         $archive = (new Archive())
-            ->withContent(new EmptyDirectory('directory', new \DateTimeImmutable()))
+            ->withContent(new EmptyDirectory('directory'))
             ->withContent(new StringContent('other/file.txt', 'data'));
 
         $filename = tempnam(sys_get_temp_dir(), 'zip');
