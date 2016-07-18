@@ -31,12 +31,30 @@ $archive = (new Archive())
         return 'data';
     }))
     ->withContent(new StringContent('string.txt', 'data'))
-    ->withContent(new FileContent('file.txt', 'local/file/name.txt'));
+    ->withContent(new FileContent('file.txt', 'local/file/name.txt'))
     ->withContent(new EmptyDirectory('directory'));
 
 $response = $response->withBody(
     new Psr7Stream(new ZipReader($archive))
 );
+```
+
+### Usage in Symfony HttpFoundation (Symfony and Laravel)
+
+```php
+use Symfony\Component\HttpFoundation\StreamedResponse;
+
+$stream = new Psr7Stream(new ZipReader($archive));
+
+$response = new StreamedResponse(function () use ($stream) {
+    while ($stream->eof() === false) {
+        echo $stream->read($blockSize = 1048576);
+    }
+}, 200, [
+    'Content-type' => 'application/zip',
+    'Content-Disposition' => 'attachment; filename="file.zip"',
+    'Content-Transfer-Encoding' => 'binary',
+]);
 ```
 
 ## Requirements
