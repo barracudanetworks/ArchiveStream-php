@@ -257,6 +257,7 @@ class ZipArchive extends Archive
 			// 3-5 will be filled in by complete_file_stream()
 			6 => (strlen($ret) + strlen($name) + strlen($extra)),
 			7 => $genb,
+			8 => substr($name, -1) == '/' ? 0x10 : 0x20, // 0x10 for directory, 0x20 for file
 		);
 	}
 
@@ -288,7 +289,7 @@ class ZipArchive extends Archive
 	 */
 	private function add_cdr_file(array $args)
 	{
-		list($name, $opt, $meth, $crc, $zlen, $len, $ofs, $genb) = $args;
+		list($name, $opt, $meth, $crc, $zlen, $len, $ofs, $genb, $file_attribute) = $args;
 
 		// convert the 64 bit ints to 2 32bit ints
 		list($zlen_low, $zlen_high) = $this->int64_split($zlen);
@@ -324,7 +325,7 @@ class ZipArchive extends Archive
 			array('v', strlen($comment)),     // file comment length
 			array('v', 0),                    // disk number start
 			array('v', 0),                    // internal file attributes
-			array('V', 32),                   // external file attributes
+			array('V', $file_attribute),      // external file attributes, 0x10 for dir, 0x20 for file
 			array('V', 0xFFFFFFFF),           // relative offset of local header (zip64 - look in extra)
 		);
 
