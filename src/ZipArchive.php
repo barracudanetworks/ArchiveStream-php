@@ -272,11 +272,12 @@ class ZipArchive extends Archive
 	 * @param int    $len     Uncompressed size.
 	 * @param int    $rec_len Size of the record.
 	 * @param int    $genb    General purpose bit flag.
+	 * @param int    $fattr   File attribute bit flag.
 	 * @return void
 	 */
-	private function add_to_cdr($name, array $opt, $meth, $crc, $zlen, $len, $rec_len, $genb = 0)
+	private function add_to_cdr($name, array $opt, $meth, $crc, $zlen, $len, $rec_len, $genb = 0, $fattr = 0x20)
 	{
-		$this->files[] = array($name, $opt, $meth, $crc, $zlen, $len, $this->cdr_ofs, $genb);
+		$this->files[] = array($name, $opt, $meth, $crc, $zlen, $len, $this->cdr_ofs, $genb, $fattr);
 		$this->cdr_ofs += $rec_len;
 	}
 
