@@ -452,7 +452,7 @@ class Archive
 	{
 		$gmp_num = gmp_init($num, $base_a);
 
-		if (!$gmp_num)
+		if (!(is_resource($gmp_num) || $gmp_num instanceof GMP))
 		{
 			// FIXME: Really? We just die here? Can we detect GMP in __constructor() instead maybe?
 			die("gmp_convert could not convert [$num] from base [$base_a] to base [$base_b]");
