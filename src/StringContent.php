@@ -39,7 +39,10 @@ final class StringContent implements ContentInterface
      */
     public function getData()
     {
-        return fopen('data://text/plain,' . $this->data, 'r');
+        $resource = fopen('php://memory', 'r+');
+        fwrite($resource, $this->data);
+        rewind($resource);
+        return $resource;
     }
 
     /**
