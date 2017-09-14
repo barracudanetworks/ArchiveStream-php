@@ -39,7 +39,10 @@ final class CallbackStringContent implements ContentInterface
      */
     public function getData()
     {
-        return fopen('data://text/plain,' . call_user_func($this->callback), 'r');
+        $resource = fopen('php://memory', 'r+');
+        fwrite($resource, call_user_func($this->callback));
+        rewind($resource);
+        return $resource;
     }
 
     /**
