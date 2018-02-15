@@ -210,7 +210,7 @@ class ZipArchive extends Archive
 		// strip leading slashes from file name
 		// (fixes bug in windows archive viewer)
 		$name = preg_replace('/^\\/+/', '', $name);
-		$extra = pack('vVVVV', 1, 0, 0, 0, 0);
+		$extra = pack('vvVVVV', 1, 0x10, 0, 0, 0, 0);
 
 		// create dos timestamp
 		$opt['time'] = isset($opt['time']) ? $opt['time'] : time();
