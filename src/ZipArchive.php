@@ -434,6 +434,11 @@ class ZipArchive extends Archive
 		$cdr_len = $cdr_len_high ? 0xFFFFFFFF : $cdr_len_low;
 		$cdr_ofs = $cdr_ofs_high ? 0xFFFFFFFF : $cdr_ofs_low;
 
+		if ($num == 0xFFFF || $cdr_len == 0xFFFFFFFF || $cdr_ofs == 0xFFFFFFFF)  {
+			$this->add_cdr_eof_zip64();
+			$this->add_cdr_eof_locator_zip64();
+		}
+
 		$fields = array(                    // (from V,F of APPNOTE.TXT)
 			array('V', 0x06054b50),         // end of central file header signature
 			array('v', 0x0000),             // this disk number (0xFFFF to look in zip64 cdr)
@@ -461,9 +466,6 @@ class ZipArchive extends Archive
 		{
 			$this->add_cdr_file($file);
 		}
-
-		$this->add_cdr_eof_zip64();
-		$this->add_cdr_eof_locator_zip64();
 
 		$this->add_cdr_eof($opt);
 	}
