@@ -297,13 +297,26 @@ class ZipArchive extends Archive
 		list($len_low, $len_high)   = $this->int64_split($len);
 		list($ofs_low, $ofs_high)   = $this->int64_split($ofs);
 
+		$zlen = $zlen_high ? 0xFFFFFFFF : $zlen_low;
+		$len = $len_high ? 0xFFFFFFFF : $len_low;
+		$ofs = $ofs_high ? 0xFFFFFFFF : $ofs_low;
+
 		// ZIP64, necessary for files over 4GB (incl. entire archive size)
 		$extra_zip64 = '';
-		$extra_zip64 .= pack('VV', $len_low, $len_high);
-		$extra_zip64 .= pack('VV', $zlen_low, $zlen_high);
-		$extra_zip64 .= pack('VV', $ofs_low, $ofs_high);
+		if ($len == 0xFFFFFFFF)
+			$extra_zip64 .= pack('VV', $len_low, $len_high);
 
-		$extra = pack('vv', 1, strlen($extra_zip64)) . $extra_zip64;
+		if ($zlen == 0xFFFFFFFF)
+			$extra_zip64 .= pack('VV', $zlen_low, $zlen_high);
+
+		if ($ofs == 0xFFFFFFFF)
+			$extra_zip64 .= pack('VV', $ofs_low, $ofs_high);
+
+		if (!empty($extra_zip64)) {
+			$extra = pack('vv', 1, strlen($extra_zip64)) . $extra_zip64;
+		} else {
+			$extra = '';
+		}
 
 		// get attributes
 		$comment = isset($opt['comment']) ? $opt['comment'] : '';
@@ -319,15 +332,15 @@ class ZipArchive extends Archive
 			array('v', $meth),                // compresion method (deflate or store)
 			array('V', $dts),                 // dos timestamp
 			array('V', $crc),                 // crc32 of data
-			array('V', 0xFFFFFFFF),           // compressed data length (zip64 - look in extra)
-			array('V', 0xFFFFFFFF),           // uncompressed data length (zip64 - look in extra)
+			array('V', $zlen),                // compressed data length (zip64 - look in extra)
+			array('V', $len),                 // uncompressed data length (zip64 - look in extra)
 			array('v', strlen($name)),        // filename length
 			array('v', strlen($extra)),       // extra data len
 			array('v', strlen($comment)),     // file comment length
 			array('v', 0),                    // disk number start
 			array('v', 0),                    // internal file attributes
 			array('V', $file_attribute),      // external file attributes, 0x10 for dir, 0x20 for file
-			array('V', 0xFFFFFFFF),           // relative offset of local header (zip64 - look in extra)
+			array('V', $ofs),                 // relative offset of local header (zip64 - look in extra)
 		);
 
 		// pack fields, then append name and comment
