@@ -412,12 +412,15 @@ class ZipArchive extends Archive
 			$comment = $opt['comment'];
 		}
 
+		$num = count($this->files);
+		$num = $num > 0xFFFF ? 0xFFFF : $num;
+
 		$fields = array(                    // (from V,F of APPNOTE.TXT)
 			array('V', 0x06054b50),         // end of central file header signature
 			array('v', 0xFFFF),             // this disk number (0xFFFF to look in zip64 cdr)
 			array('v', 0xFFFF),             // number of disk with cdr (0xFFFF to look in zip64 cdr)
-			array('v', 0xFFFF),             // number of entries in the cdr on this disk (0xFFFF to look in zip64 cdr))
-			array('v', 0xFFFF),             // number of entries in the cdr (0xFFFF to look in zip64 cdr)
+			array('v', $num),               // number of entries in the cdr on this disk (0xFFFF to look in zip64 cdr))
+			array('v', $num),               // number of entries in the cdr (0xFFFF to look in zip64 cdr)
 			array('V', 0xFFFFFFFF),         // cdr size (0xFFFFFFFF to look in zip64 cdr)
 			array('V', 0xFFFFFFFF),         // cdr offset (0xFFFFFFFF to look in zip64 cdr)
 			array('v', strlen($comment)),   // zip file comment length
