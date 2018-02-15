@@ -428,14 +428,20 @@ class ZipArchive extends Archive
 		$num = count($this->files);
 		$num = $num > 0xFFFF ? 0xFFFF : $num;
 
+		list($cdr_len_low, $cdr_len_high) = $this->int64_split($this->cdr_len);
+		list($cdr_ofs_low, $cdr_ofs_high) = $this->int64_split($this->cdr_ofs);
+
+		$cdr_len = $cdr_len_high ? 0xFFFFFFFF : $cdr_len_low;
+		$cdr_ofs = $cdr_ofs_high ? 0xFFFFFFFF : $cdr_ofs_low;
+
 		$fields = array(                    // (from V,F of APPNOTE.TXT)
 			array('V', 0x06054b50),         // end of central file header signature
-			array('v', 0xFFFF),             // this disk number (0xFFFF to look in zip64 cdr)
-			array('v', 0xFFFF),             // number of disk with cdr (0xFFFF to look in zip64 cdr)
+			array('v', 0x0000),             // this disk number (0xFFFF to look in zip64 cdr)
+			array('v', 0x0000),             // number of disk with cdr (0xFFFF to look in zip64 cdr)
 			array('v', $num),               // number of entries in the cdr on this disk (0xFFFF to look in zip64 cdr))
 			array('v', $num),               // number of entries in the cdr (0xFFFF to look in zip64 cdr)
-			array('V', 0xFFFFFFFF),         // cdr size (0xFFFFFFFF to look in zip64 cdr)
-			array('V', 0xFFFFFFFF),         // cdr offset (0xFFFFFFFF to look in zip64 cdr)
+			array('V', $cdr_len),           // cdr size (0xFFFFFFFF to look in zip64 cdr)
+			array('V', $cdr_ofs),           // cdr offset (0xFFFFFFFF to look in zip64 cdr)
 			array('v', strlen($comment)),   // zip file comment length
 		);
 
