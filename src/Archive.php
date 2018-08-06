@@ -50,16 +50,16 @@ class Archive
 	/**
 	 * Create a new ArchiveStream object.
 	 *
-	 * @param resource $output_stream Output stream for archive contents.
 	 * @param string   $name          The name of the resulting archive (optional).
 	 * @param array    $opt           Hash of archive options (see archive options in readme).
 	 * @param string   $base_path     An optional base path for files to be named under.
+	 * @param resource $output_stream Output stream for archive contents.
 	 */
 	public function __construct(
-		$output_stream,
 		$name = null,
 		array $opt = array(),
-		$base_path = null
+		$base_path = null,
+		$output_stream = STDOUT
 	)
 	{
 		$this->output_stream = $output_stream;
@@ -115,13 +115,13 @@ class Archive
 		if (strpos($user_agent, 'windows') !== false)
 		{
 			$filename = (($base_filename === null) ? null : $base_filename . '.zip');
-			return new Zip($output_stream, $filename, $opt, $base_filename);
+			return new Zip($filename, $opt, $base_filename, $output_stream);
 		}
 		// fallback to tar
 		else
 		{
 			$filename = (($base_filename === null) ? null : $base_filename . '.tar');
-			return new Tar($output_stream, $filename, $opt, $base_filename);
+			return new Tar($filename, $opt, $base_filename, $output_stream);
 		}
 	}
 
