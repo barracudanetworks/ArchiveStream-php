@@ -50,12 +50,20 @@ class Archive
 	/**
 	 * Create a new ArchiveStream object.
 	 *
-	 * @param string $name      The name of the resulting archive (optional).
-	 * @param array  $opt       Hash of archive options (see archive options in readme).
-	 * @param string $base_path An optional base path for files to be named under.
+	 * @param resource $output_stream Output stream for archive contents.
+	 * @param string   $name          The name of the resulting archive (optional).
+	 * @param array    $opt           Hash of archive options (see archive options in readme).
+	 * @param string   $base_path     An optional base path for files to be named under.
 	 */
-	public function __construct($name = null, array $opt = array(), $base_path = null)
+	public function __construct(
+		$output_stream,
+		$name = null,
+		array $opt = array(),
+		$base_path = null
+	)
 	{
+		$this->output_stream = $output_stream;
+
 		// save options
 		$this->opt = $opt;
 
@@ -90,11 +98,16 @@ class Archive
 	/**
 	 * Create instance based on useragent string
 	 *
-	 * @param string $base_filename A name for the resulting archive (without an extension).
-	 * @param array  $opt           Map of archive options (see above for list).
+	 * @param string   $base_filename A name for the resulting archive (without an extension).
+	 * @param array    $opt           Map of archive options (see above for list).
+	 * @param resource $output_stream Output stream for archive contents.
 	 * @return ArchiveStream for either zip or tar
 	 */
-	public static function instance_by_useragent($base_filename = null, array $opt = array())
+	public static function instance_by_useragent(
+		$base_filename = null,
+		array $opt = array(),
+		$output_stream = STDOUT
+	)
 	{
 		$user_agent = (isset($_SERVER['HTTP_USER_AGENT']) ? strtolower($_SERVER['HTTP_USER_AGENT']) : '');
 
@@ -102,13 +115,13 @@ class Archive
 		if (strpos($user_agent, 'windows') !== false)
 		{
 			$filename = (($base_filename === null) ? null : $base_filename . '.zip');
-			return new Zip($filename, $opt, $base_filename);
+			return new Zip($output_stream, $filename, $opt, $base_filename);
 		}
 		// fallback to tar
 		else
 		{
 			$filename = (($base_filename === null) ? null : $base_filename . '.tar');
-			return new Tar($filename, $opt, $base_filename);
+			return new Tar($output_stream, $filename, $opt, $base_filename);
 		}
 	}
 
@@ -327,7 +340,7 @@ class Archive
 
 		$this->need_headers = false;
 
-		echo $data;
+		fwrite($this->output_stream, $data);
 	}
 
 	/**
