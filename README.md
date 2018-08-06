@@ -9,9 +9,10 @@ A library for dynamically streaming dynamic tar or zip files without the need to
 /**
  * Construct Parameters:
  *
- *   $name - Name of output file (optional).
- *   $opt  - Hash of archive options (optional, see "Archive Options"
- *           below).
+ *   $name          - Name of output file (optional).
+ *   $opt           - Hash of archive options (optional, see "Archive Options"
+ *                    below).
+ *   $output_stream - Output stream for archive (optional - defaults to STDOUT)
  *
  * Archive Options:
  *
@@ -141,6 +142,7 @@ disable) the HTTP headers.  See the class file for details.
 - Andrew Borek
 - Rafael Corral
 - John Maguire
+- Zachery Stuart
 
 ## License
 
