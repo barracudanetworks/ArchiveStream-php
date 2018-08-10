@@ -344,7 +344,7 @@ class Archive
 		{
 			$result = fwrite($this->output_stream, $data);
 			$data = substr($data, $result);
-			flush();
+			fflush($this->output_stream);
 		} while ($data && $result !== false);
 	}
 
