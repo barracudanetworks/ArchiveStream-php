@@ -340,7 +340,12 @@ class Archive
 
 		$this->need_headers = false;
 
-		fwrite($this->output_stream, $data);
+		do
+		{
+			$result = fwrite($this->output_stream, $data);
+			$data = substr($data, $result);
+			flush();
+		} while ($data && $result !== false);
 	}
 
 	/**
