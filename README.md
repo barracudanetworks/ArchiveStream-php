@@ -1,4 +1,4 @@
-# ArchiveStream 1.0.5
+# ArchiveStream 1.0.7
 [![Code Climate](https://codeclimate.com/github/barracudanetworks/ArchiveStream-php/badges/gpa.svg)](https://codeclimate.com/github/barracudanetworks/ArchiveStream-php)
 
 A library for dynamically streaming dynamic tar or zip files without the need to have the complete file stored on the server. You can specify if you want a tar or a zip; or if you want to have the library figure out the best option based on the user agent string.
