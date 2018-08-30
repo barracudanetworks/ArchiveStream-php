@@ -101,7 +101,7 @@ class Archive
 	 * @param string   $base_filename A name for the resulting archive (without an extension).
 	 * @param array    $opt           Map of archive options (see above for list).
 	 * @param resource $output_stream Output stream for archive contents.
-	 * @return ArchiveStream for either zip or tar
+	 * @return Zip|Tar for either zip or tar
 	 */
 	public static function instance_by_useragent(
 		$base_filename = null,
