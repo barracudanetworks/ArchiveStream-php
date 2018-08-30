@@ -59,10 +59,15 @@ class Archive
 		$name = null,
 		array $opt = array(),
 		$base_path = null,
-		$output_stream = STDOUT
+		$output_stream = null
 	)
-	{
-		$this->output_stream = $output_stream;
+	{        
+                if ($output_stream === null) {
+                    // Output stream for cli and web server
+                    $output_stream = fopen('php://output', 'w');
+                }
+
+        	$this->output_stream = $output_stream;
 
 		// save options
 		$this->opt = $opt;
@@ -106,9 +111,14 @@ class Archive
 	public static function instance_by_useragent(
 		$base_filename = null,
 		array $opt = array(),
-		$output_stream = STDOUT
+		$output_stream = null
 	)
 	{
+                if ($output_stream === null) {
+                    // Output stream for cli and web server
+                    $output_stream = fopen('php://output', 'w');
+                }
+
 		$user_agent = (isset($_SERVER['HTTP_USER_AGENT']) ? strtolower($_SERVER['HTTP_USER_AGENT']) : '');
 
 		// detect windows and use zip
