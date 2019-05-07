@@ -172,6 +172,7 @@ final class ZipReader implements ArchiveReader
             // 2-4 will be filled in by complete_file_stream()
             5 => (strlen($ret) + strlen($name) + strlen($extra)),
             6 => $genb,
+            7 => substr($name, -1) == '/' ? 0x10 : 0x20, // 0x10 for directory, 0x20 for file
         ];
 
         $stream = new \SplTempFileObject();
@@ -240,18 +241,19 @@ final class ZipReader implements ArchiveReader
     /**
      * Save file attributes for trailing CDR record.
      *
-     * @param string $name    Path / name of the file.
-     * @param int    $method    Method of compression to use.
-     * @param string $crc     Computed checksum of the file.
-     * @param int    $zlen    Compressed size.
-     * @param int    $len     Uncompressed size.
-     * @param int    $rec_len Size of the record.
-     * @param int    $genb    General purpose bit flag.
+     * @param string $name Path / name of the file.
+     * @param int $method Method of compression to use.
+     * @param string $crc Computed checksum of the file.
+     * @param int $zlen Compressed size.
+     * @param int $len Uncompressed size.
+     * @param int $rec_len Size of the record.
+     * @param int $genb General purpose bit flag.
+     * @param int $fattr File attribute bit flag.
      * @return void
      */
-    private function addToCdr($name, $method, $crc, $zlen, $len, $rec_len, $genb = 0)
+    private function addToCdr($name, $method, $crc, $zlen, $len, $rec_len, $genb = 0, $fattr = 0x20)
     {
-        $this->files[] = [$name, $method, $crc, $zlen, $len, $this->cdr_ofs, $genb];
+        $this->files[] = [$name, $method, $crc, $zlen, $len, $this->cdr_ofs, $genb, $fattr];
         $this->cdr_ofs += $rec_len;
     }
 
@@ -264,7 +266,7 @@ final class ZipReader implements ArchiveReader
      */
     private function addCdrFile(array $args)
     {
-        list($name, $meth, $crc, $zlen, $len, $ofs, $genb) = $args;
+        list($name, $meth, $crc, $zlen, $len, $ofs, $genb, $file_attribute) = $args;
 
         // convert the 64 bit ints to 2 32bit ints
         list($zlen_low, $zlen_high) = PackHelper::int64Split($zlen);
@@ -300,7 +302,7 @@ final class ZipReader implements ArchiveReader
             ['v', strlen($comment)],     // file comment length
             ['v', 0],                    // disk number start
             ['v', 0],                    // internal file attributes
-            ['V', 32],                   // external file attributes
+            ['V', $file_attribute],      // external file attributes, 0x10 for dir, 0x20 for file
             ['V', 0xFFFFFFFF],           // relative offset of local header (zip64 - look in extra)
         ];
 
