@@ -87,8 +87,18 @@ final class ZipReader implements ArchiveReader
             yield $this->addCdrFile($file);
         }
 
-        yield $this->addCdrEofZip64();
-        yield $this->addCdrEofLocatorZip64();
+        $num = count($this->files);
+        $num = $num > 0xFFFF ? 0xFFFF : $num;
+        list($cdr_len_low, $cdr_len_high) = PackHelper::int64Split($this->cdr_len);
+        list($cdr_ofs_low, $cdr_ofs_high) = PackHelper::int64Split($this->cdr_ofs);
+        $cdr_len = $cdr_len_high ? 0xFFFFFFFF : $cdr_len_low;
+        $cdr_ofs = $cdr_ofs_high ? 0xFFFFFFFF : $cdr_ofs_low;
+
+        if ($num == 0xFFFF || $cdr_len == 0xFFFFFFFF || $cdr_ofs == 0xFFFFFFFF)  {
+            yield $this->addCdrEofZip64();
+            yield $this->addCdrEofLocatorZip64();
+        }
+
         yield $this->addCdrEof();
 
         $this->clear();
@@ -131,7 +141,7 @@ final class ZipReader implements ArchiveReader
         // strip leading slashes from file name
         // (fixes bug in windows archive viewer)
         $name = preg_replace('/^\\/+/', '', $name);
-        $extra = pack('vVVVV', 1, 0, 0, 0, 0);
+        $extra = pack('vvVVVV', 1, 0x10, 0, 0, 0, 0);
 
         // create dos timestamp
         $dts = PackHelper::dostime($content->getModifiedAt());
@@ -147,6 +157,9 @@ final class ZipReader implements ArchiveReader
             // MUST be encoded using UTF-8. (see APPENDIX D)
             $genb |= 0x0800;
         }
+
+        $num = count($this->files);
+        $num = $num > 0xFFFF ? 0xFFFF : $num;
 
         // build file header
         $fields = [                // (from V.A of APPNOTE.TXT)
@@ -275,9 +288,23 @@ final class ZipReader implements ArchiveReader
 
         // ZIP64, necessary for files over 4GB (incl. entire archive size)
         $extra_zip64 = '';
-        $extra_zip64 .= pack('VV', $len_low, $len_high);
-        $extra_zip64 .= pack('VV', $zlen_low, $zlen_high);
-        $extra_zip64 .= pack('VV', $ofs_low, $ofs_high);
+        if ($len == 0xFFFFFFFF) {
+            $extra_zip64 .= pack('VV', $len_low, $len_high);
+        }
+
+        if ($zlen == 0xFFFFFFFF) {
+            $extra_zip64 .= pack('VV', $zlen_low, $zlen_high);
+        }
+        if ($ofs == 0xFFFFFFFF) {
+            $extra_zip64 .= pack('VV', $ofs_low, $ofs_high);
+        }
+
+
+        if (!empty($extra_zip64)) {
+            $extra = pack('vv', 1, strlen($extra_zip64)) . $extra_zip64;
+        } else {
+            $extra = '';
+        }
 
         $extra = pack('vv', 1, strlen($extra_zip64)) . $extra_zip64;
 
@@ -295,15 +322,15 @@ final class ZipReader implements ArchiveReader
             ['v', $meth],                // compresion method (deflate or store)
             ['V', $dts],                 // dos timestamp
             ['V', $crc],                 // crc32 of data
-            ['V', 0xFFFFFFFF],           // compressed data length (zip64 - look in extra)
-            ['V', 0xFFFFFFFF],           // uncompressed data length (zip64 - look in extra)
+            ['V', $zlen],                // compressed data length (zip64 - look in extra)
+            ['V', $len],                 // uncompressed data length (zip64 - look in extra)
             ['v', strlen($name)],        // filename length
             ['v', strlen($extra)],       // extra data len
             ['v', strlen($comment)],     // file comment length
             ['v', 0],                    // disk number start
             ['v', 0],                    // internal file attributes
             ['V', $file_attribute],      // external file attributes, 0x10 for dir, 0x20 for file
-            ['V', 0xFFFFFFFF],           // relative offset of local header (zip64 - look in extra)
+            ['V', $ofs],                 // relative offset of local header (zip64 - look in extra)
         ];
 
         // pack fields, then append name and comment
@@ -389,14 +416,22 @@ final class ZipReader implements ArchiveReader
     private function addCdrEof()
     {
         $comment = $this->archive->getComment();
+
+        $num = count($this->files);
+        $num = $num > 0xFFFF ? 0xFFFF : $num;
+        list($cdr_len_low, $cdr_len_high) = PackHelper::int64Split($this->cdr_len);
+        list($cdr_ofs_low, $cdr_ofs_high) = PackHelper::int64Split($this->cdr_ofs);
+        $cdr_len = $cdr_len_high ? 0xFFFFFFFF : $cdr_len_low;
+        $cdr_ofs = $cdr_ofs_high ? 0xFFFFFFFF : $cdr_ofs_low;
+
         $fields = [                    // (from V,F of APPNOTE.TXT)
             ['V', 0x06054b50],         // end of central file header signature
-            ['v', 0xFFFF],             // this disk number (0xFFFF to look in zip64 cdr)
-            ['v', 0xFFFF],             // number of disk with cdr (0xFFFF to look in zip64 cdr)
-            ['v', 0xFFFF],             // number of entries in the cdr on this disk (0xFFFF to look in zip64 cdr))
-            ['v', 0xFFFF],             // number of entries in the cdr (0xFFFF to look in zip64 cdr)
-            ['V', 0xFFFFFFFF],         // cdr size (0xFFFFFFFF to look in zip64 cdr)
-            ['V', 0xFFFFFFFF],         // cdr offset (0xFFFFFFFF to look in zip64 cdr)
+            ['v', 0x0000],             // this disk number (0xFFFF to look in zip64 cdr)
+            ['v', 0x0000],             // number of disk with cdr (0xFFFF to look in zip64 cdr)
+            ['v', $num],               // number of entries in the cdr on this disk (0xFFFF to look in zip64 cdr))
+            ['v', $num],               // number of entries in the cdr (0xFFFF to look in zip64 cdr)
+            ['V', $cdr_len],         // cdr size (0xFFFFFFFF to look in zip64 cdr)
+            ['V', $cdr_ofs],         // cdr offset (0xFFFFFFFF to look in zip64 cdr)
             ['v', strlen($comment)],   // zip file comment length
         ];
 
