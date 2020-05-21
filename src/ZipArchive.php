@@ -210,7 +210,7 @@ class ZipArchive extends Archive
 		// strip leading slashes from file name
 		// (fixes bug in windows archive viewer)
 		$name = preg_replace('/^\\/+/', '', $name);
-		$extra = pack('vVVVV', 1, 0, 0, 0, 0);
+		$extra = pack('vvVVVV', 1, 0x10, 0, 0, 0, 0);
 
 		// create dos timestamp
 		$opt['time'] = isset($opt['time']) ? $opt['time'] : time();
@@ -297,13 +297,26 @@ class ZipArchive extends Archive
 		list($len_low, $len_high)   = $this->int64_split($len);
 		list($ofs_low, $ofs_high)   = $this->int64_split($ofs);
 
+		$zlen = $zlen_high ? 0xFFFFFFFF : $zlen_low;
+		$len = $len_high ? 0xFFFFFFFF : $len_low;
+		$ofs = $ofs_high ? 0xFFFFFFFF : $ofs_low;
+
 		// ZIP64, necessary for files over 4GB (incl. entire archive size)
 		$extra_zip64 = '';
-		$extra_zip64 .= pack('VV', $len_low, $len_high);
-		$extra_zip64 .= pack('VV', $zlen_low, $zlen_high);
-		$extra_zip64 .= pack('VV', $ofs_low, $ofs_high);
+		if ($len == 0xFFFFFFFF)
+			$extra_zip64 .= pack('VV', $len_low, $len_high);
 
-		$extra = pack('vv', 1, strlen($extra_zip64)) . $extra_zip64;
+		if ($zlen == 0xFFFFFFFF)
+			$extra_zip64 .= pack('VV', $zlen_low, $zlen_high);
+
+		if ($ofs == 0xFFFFFFFF)
+			$extra_zip64 .= pack('VV', $ofs_low, $ofs_high);
+
+		if (!empty($extra_zip64)) {
+			$extra = pack('vv', 1, strlen($extra_zip64)) . $extra_zip64;
+		} else {
+			$extra = '';
+		}
 
 		// get attributes
 		$comment = isset($opt['comment']) ? $opt['comment'] : '';
@@ -319,15 +332,15 @@ class ZipArchive extends Archive
 			array('v', $meth),                // compresion method (deflate or store)
 			array('V', $dts),                 // dos timestamp
 			array('V', $crc),                 // crc32 of data
-			array('V', 0xFFFFFFFF),           // compressed data length (zip64 - look in extra)
-			array('V', 0xFFFFFFFF),           // uncompressed data length (zip64 - look in extra)
+			array('V', $zlen),                // compressed data length (zip64 - look in extra)
+			array('V', $len),                 // uncompressed data length (zip64 - look in extra)
 			array('v', strlen($name)),        // filename length
 			array('v', strlen($extra)),       // extra data len
 			array('v', strlen($comment)),     // file comment length
 			array('v', 0),                    // disk number start
 			array('v', 0),                    // internal file attributes
 			array('V', $file_attribute),      // external file attributes, 0x10 for dir, 0x20 for file
-			array('V', 0xFFFFFFFF),           // relative offset of local header (zip64 - look in extra)
+			array('V', $ofs),                 // relative offset of local header (zip64 - look in extra)
 		);
 
 		// pack fields, then append name and comment
@@ -412,14 +425,28 @@ class ZipArchive extends Archive
 			$comment = $opt['comment'];
 		}
 
+		$num = count($this->files);
+		$num = $num > 0xFFFF ? 0xFFFF : $num;
+
+		list($cdr_len_low, $cdr_len_high) = $this->int64_split($this->cdr_len);
+		list($cdr_ofs_low, $cdr_ofs_high) = $this->int64_split($this->cdr_ofs);
+
+		$cdr_len = $cdr_len_high ? 0xFFFFFFFF : $cdr_len_low;
+		$cdr_ofs = $cdr_ofs_high ? 0xFFFFFFFF : $cdr_ofs_low;
+
+		if ($num == 0xFFFF || $cdr_len == 0xFFFFFFFF || $cdr_ofs == 0xFFFFFFFF)  {
+			$this->add_cdr_eof_zip64();
+			$this->add_cdr_eof_locator_zip64();
+		}
+
 		$fields = array(                    // (from V,F of APPNOTE.TXT)
 			array('V', 0x06054b50),         // end of central file header signature
-			array('v', 0xFFFF),             // this disk number (0xFFFF to look in zip64 cdr)
-			array('v', 0xFFFF),             // number of disk with cdr (0xFFFF to look in zip64 cdr)
-			array('v', 0xFFFF),             // number of entries in the cdr on this disk (0xFFFF to look in zip64 cdr))
-			array('v', 0xFFFF),             // number of entries in the cdr (0xFFFF to look in zip64 cdr)
-			array('V', 0xFFFFFFFF),         // cdr size (0xFFFFFFFF to look in zip64 cdr)
-			array('V', 0xFFFFFFFF),         // cdr offset (0xFFFFFFFF to look in zip64 cdr)
+			array('v', 0x0000),             // this disk number (0xFFFF to look in zip64 cdr)
+			array('v', 0x0000),             // number of disk with cdr (0xFFFF to look in zip64 cdr)
+			array('v', $num),               // number of entries in the cdr on this disk (0xFFFF to look in zip64 cdr))
+			array('v', $num),               // number of entries in the cdr (0xFFFF to look in zip64 cdr)
+			array('V', $cdr_len),           // cdr size (0xFFFFFFFF to look in zip64 cdr)
+			array('V', $cdr_ofs),           // cdr offset (0xFFFFFFFF to look in zip64 cdr)
 			array('v', strlen($comment)),   // zip file comment length
 		);
 
@@ -439,9 +466,6 @@ class ZipArchive extends Archive
 		{
 			$this->add_cdr_file($file);
 		}
-
-		$this->add_cdr_eof_zip64();
-		$this->add_cdr_eof_locator_zip64();
 
 		$this->add_cdr_eof($opt);
 	}
