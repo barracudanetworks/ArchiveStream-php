@@ -1,10 +1,9 @@
 <?php
+
+declare(strict_types=1);
+
 namespace Genkgo\ArchiveStream;
 
-/**
- * Class Archive
- * @package Genkgo\ArchiveStream
- */
 final class Archive
 {
     /**
@@ -15,13 +14,13 @@ final class Archive
     /**
      * @var string
      */
-    private $comment;
+    private $comment = '';
 
     /**
      * @param ContentInterface $content
      * @return Archive
      */
-    public function withContent(ContentInterface $content)
+    public function withContent(ContentInterface $content): Archive
     {
         $clone = clone $this;
         $clone->content[] = $content;
@@ -32,7 +31,7 @@ final class Archive
      * @param string $comment
      * @return Archive
      */
-    public function withComment($comment)
+    public function withComment(string $comment): Archive
     {
         $clone = clone $this;
         $clone->comment = $comment;
@@ -40,9 +39,9 @@ final class Archive
     }
 
     /**
-     * @return ContentInterface[]
+     * @return array<int, ContentInterface>
      */
-    public function getContents()
+    public function getContents(): array
     {
         return $this->content;
     }
@@ -50,7 +49,7 @@ final class Archive
     /**
      * @return string
      */
-    public function getComment()
+    public function getComment(): string
     {
         return $this->comment;
     }

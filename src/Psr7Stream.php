@@ -1,30 +1,33 @@
 <?php
+
+declare(strict_types=1);
+
 namespace Genkgo\ArchiveStream;
 
 use Psr\Http\Message\StreamInterface;
 
-/**
- * Class Psr7Stream
- * @package Genkgo\ArchiveStream
- */
 final class Psr7Stream implements StreamInterface
 {
     /**
      * @var ArchiveReader
      */
     private $delegatedStream;
+
     /**
      * @var int
      */
     private $blockSize;
+
     /**
-     * @var \Generator
+     * @var ?\Generator<int, \SplTempFileObject>
      */
     private $generator;
+
     /**
      * @var int
      */
     private $position = 0;
+
     /**
      * @var \SplTempFileObject
      */
@@ -34,7 +37,7 @@ final class Psr7Stream implements StreamInterface
      * @param ArchiveReader $delegatedStream
      * @param int $blockSize
      */
-    public function __construct(ArchiveReader $delegatedStream, $blockSize = 1048576)
+    public function __construct(ArchiveReader $delegatedStream, int $blockSize = 1048576)
     {
         $this->delegatedStream = $delegatedStream;
         $this->blockSize = $blockSize;
@@ -43,7 +46,7 @@ final class Psr7Stream implements StreamInterface
     /**
      * {@inheritdoc}
      */
-    public function __toString()
+    public function __toString(): string
     {
         try {
             $this->rewind();
@@ -56,9 +59,8 @@ final class Psr7Stream implements StreamInterface
     /**
      * {@inheritdoc}
      */
-    public function close()
+    public function close(): void
     {
-        return;
     }
 
     /**
@@ -72,7 +74,7 @@ final class Psr7Stream implements StreamInterface
     /**
      * {@inheritdoc}
      */
-    public function getSize()
+    public function getSize(): ?int
     {
         return null;
     }
@@ -80,7 +82,7 @@ final class Psr7Stream implements StreamInterface
     /**
      * {@inheritdoc}
      */
-    public function tell()
+    public function tell(): int
     {
         return $this->position;
     }
@@ -88,7 +90,7 @@ final class Psr7Stream implements StreamInterface
     /**
      * {@inheritdoc}
      */
-    public function eof()
+    public function eof(): bool
     {
         return $this->generator !== null && $this->generator->valid() === false;
     }
@@ -96,7 +98,7 @@ final class Psr7Stream implements StreamInterface
     /**
      * {@inheritdoc}
      */
-    public function isSeekable()
+    public function isSeekable(): bool
     {
         return false;
     }
@@ -104,7 +106,7 @@ final class Psr7Stream implements StreamInterface
     /**
      * {@inheritdoc}
      */
-    public function seek($offset, $whence = SEEK_SET)
+    public function seek($offset, $whence = SEEK_SET): void
     {
         throw new \RuntimeException('Cannot seek archive stream');
     }
@@ -112,7 +114,7 @@ final class Psr7Stream implements StreamInterface
     /**
      * {@inheritdoc}
      */
-    public function rewind()
+    public function rewind(): void
     {
         $this->generator = null;
     }
@@ -120,7 +122,7 @@ final class Psr7Stream implements StreamInterface
     /**
      * {@inheritdoc}
      */
-    public function isWritable()
+    public function isWritable(): bool
     {
         return false;
     }
@@ -128,7 +130,7 @@ final class Psr7Stream implements StreamInterface
     /**
      * {@inheritdoc}
      */
-    public function write($string)
+    public function write($string): int
     {
         throw new \RuntimeException('Cannot write to archive stream');
     }
@@ -136,7 +138,7 @@ final class Psr7Stream implements StreamInterface
     /**
      * {@inheritdoc}
      */
-    public function isReadable()
+    public function isReadable(): bool
     {
         return true;
     }
@@ -144,11 +146,11 @@ final class Psr7Stream implements StreamInterface
     /**
      * {@inheritdoc}
      */
-    public function read($length)
+    public function read($length): string
     {
         $this->initializeBeforeRead();
 
-        if (!$this->generator->valid()) {
+        if (!$this->generator || !$this->generator->valid()) {
             return '';
         }
 
@@ -162,13 +164,18 @@ final class Psr7Stream implements StreamInterface
             $this->resource->rewind();
         }
 
-        return $this->resource->fread($length);
+        $data = $this->resource->fread($length);
+        if ($data === false) {
+            return '';
+        }
+
+        return $data;
     }
 
     /**
      * {@inheritdoc}
      */
-    public function getContents()
+    public function getContents(): string
     {
         $data = '';
 
@@ -180,17 +187,15 @@ final class Psr7Stream implements StreamInterface
     }
 
     /**
-     * {@inheritdoc}
+     * @param null|string $key
+     * @return array<string, mixed>
      */
-    public function getMetadata($key = null)
+    public function getMetadata($key = null): array
     {
         return [];
     }
 
-    /**
-     *
-     */
-    private function initializeBeforeRead()
+    private function initializeBeforeRead(): void
     {
         if ($this->generator === null) {
             $this->generator = $this->delegatedStream->read($this->blockSize);

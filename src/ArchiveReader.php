@@ -1,11 +1,14 @@
 <?php
+
+declare(strict_types=1);
+
 namespace Genkgo\ArchiveStream;
 
 interface ArchiveReader
 {
     /**
-     * @param $blockSize
-     * @return \Generator|\SplTempFileObject[]
+     * @param int $blockSize
+     * @return \Generator<int, \SplTempFileObject>
      */
-    public function read($blockSize);
+    public function read(int $blockSize): \Generator;
 }

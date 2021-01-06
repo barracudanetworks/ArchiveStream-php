@@ -1,12 +1,11 @@
 <?php
+
+declare(strict_types=1);
+
 namespace Genkgo\ArchiveStream;
 
 use Genkgo\ArchiveStream\Exception\ContentWithoutDataException;
 
-/**
- * Class EmptyDirectory
- * @package Genkgo\ArchiveStream
- */
 final class EmptyDirectory implements ContentInterface
 {
     /**
@@ -15,9 +14,9 @@ final class EmptyDirectory implements ContentInterface
     private $name;
 
     /**
-     * @param $name
+     * @param string $name
      */
-    public function __construct($name)
+    public function __construct(string $name)
     {
         $this->name = $name;
     }
@@ -25,7 +24,7 @@ final class EmptyDirectory implements ContentInterface
     /**
      * @return string
      */
-    public function getName()
+    public function getName(): string
     {
         return $this->name;
     }
@@ -42,7 +41,7 @@ final class EmptyDirectory implements ContentInterface
     /**
      * @return \DateTimeImmutable
      */
-    public function getModifiedAt()
+    public function getModifiedAt(): \DateTimeImmutable
     {
         return new \DateTimeImmutable();
     }
@@ -50,7 +49,7 @@ final class EmptyDirectory implements ContentInterface
     /**
      * @return int
      */
-    public function getType()
+    public function getType(): int
     {
         return ContentInterface::DIRECTORY;
     }
@@ -58,7 +57,7 @@ final class EmptyDirectory implements ContentInterface
     /**
      * @return string
      */
-    public function getEncoding()
+    public function getEncoding(): string
     {
         return 'ASCII';
     }

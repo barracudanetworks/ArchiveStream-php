@@ -1,26 +1,26 @@
 <?php
+
+declare(strict_types=1);
+
 namespace Genkgo\ArchiveStream;
 
-/**
- * Class CallbackContent
- * @package Genkgo\ArchiveStream
- */
 final class CallbackStringContent implements ContentInterface
 {
     /**
      * @var string
      */
     private $name;
+
     /**
-     * @var callback
+     * @var callable
      */
     private $callback;
 
     /**
-     * @param $name
-     * @param $callback
+     * @param string $name
+     * @param callable $callback
      */
-    public function __construct($name, callable $callback)
+    public function __construct(string $name, callable $callback)
     {
         $this->name = $name;
         $this->callback = $callback;
@@ -29,7 +29,7 @@ final class CallbackStringContent implements ContentInterface
     /**
      * @return string
      */
-    public function getName()
+    public function getName(): string
     {
         return $this->name;
     }
@@ -39,16 +39,20 @@ final class CallbackStringContent implements ContentInterface
      */
     public function getData()
     {
-        $resource = fopen('php://memory', 'r+');
-        fwrite($resource, call_user_func($this->callback));
-        rewind($resource);
+        $resource = \fopen('php://memory', 'r+');
+        if (!$resource) {
+            throw new \UnexpectedValueException('Cannot create in-memory resource');
+        }
+
+        \fwrite($resource, \call_user_func($this->callback));
+        \rewind($resource);
         return $resource;
     }
 
     /**
      * @return \DateTimeImmutable
      */
-    public function getModifiedAt()
+    public function getModifiedAt(): \DateTimeImmutable
     {
         return new \DateTimeImmutable();
     }
@@ -56,7 +60,7 @@ final class CallbackStringContent implements ContentInterface
     /**
      * @return int
      */
-    public function getType()
+    public function getType(): int
     {
         return ContentInterface::FILE;
     }
@@ -64,7 +68,7 @@ final class CallbackStringContent implements ContentInterface
     /**
      * @return string
      */
-    public function getEncoding()
+    public function getEncoding(): string
     {
         return 'UTF-8';
     }

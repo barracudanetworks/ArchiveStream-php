@@ -1,48 +1,51 @@
 <?php
+
+declare(strict_types=1);
+
 namespace Genkgo\ArchiveStream;
 
 use Genkgo\ArchiveStream\Exception\ContentWithoutDataException;
 use Genkgo\ArchiveStream\Util\PackHelper;
 
-/**
- * Class ZipStream
- * @package Genkgo\ArchiveStream
- */
 final class ZipReader implements ArchiveReader
 {
-    /**
-     * Version zip was created by / must be opened by (4.5 for Zip64 support).
-     */
     const VERSION = 45;
 
     /**
      * @var Archive
      */
     private $archive;
+
     /**
-     * @var int|null
+     * @var \GMP
      */
     private $len = null;
+
     /**
-     * @var resource
+     * @var \HashContext
      */
     private $hash_ctx;
+
     /**
-     * @var
+     * @var \GMP
      */
     private $zlen = null;
+
     /**
-     * @var
+     * @var array<int, mixed>
      */
     private $current_file_stream;
+
     /**
-     * @var
+     * @var array<int, mixed>
      */
     private $files = [];
+
     /**
-     * @var
+     * @var int
      */
     private $cdr_ofs = 0;
+
     /**
      * @var int
      */
@@ -57,10 +60,10 @@ final class ZipReader implements ArchiveReader
     }
 
     /**
-     * @param $blockSize
-     * @return \Generator|\SplTempFileObject[]
+     * @param int $blockSize
+     * @return \Generator<int, \SplTempFileObject>
      */
-    public function read($blockSize)
+    public function read(int $blockSize): \Generator
     {
         foreach ($this->archive->getContents() as $content) {
             if ($content->getType() === ContentInterface::DIRECTORY) {
@@ -71,12 +74,12 @@ final class ZipReader implements ArchiveReader
 
             try {
                 $resource = $content->getData();
-                while ($data = fread($resource, $blockSize)) {
+                while ($data = \fread($resource, $blockSize)) {
                     yield $this->streamResourceData($data);
                 }
 
                 // close input file
-                fclose($resource);
+                \fclose($resource);
             } catch (ContentWithoutDataException $e) {
             }
 
@@ -87,14 +90,14 @@ final class ZipReader implements ArchiveReader
             yield $this->addCdrFile($file);
         }
 
-        $num = count($this->files);
+        $num = \count($this->files);
         $num = $num > 0xFFFF ? 0xFFFF : $num;
         list($cdr_len_low, $cdr_len_high) = PackHelper::int64Split($this->cdr_len);
         list($cdr_ofs_low, $cdr_ofs_high) = PackHelper::int64Split($this->cdr_ofs);
         $cdr_len = $cdr_len_high ? 0xFFFFFFFF : $cdr_len_low;
         $cdr_ofs = $cdr_ofs_high ? 0xFFFFFFFF : $cdr_ofs_low;
 
-        if ($num == 0xFFFF || $cdr_len == 0xFFFFFFFF || $cdr_ofs == 0xFFFFFFFF)  {
+        if ($num == 0xFFFF || $cdr_len == 0xFFFFFFFF || $cdr_ofs == 0xFFFFFFFF) {
             yield $this->addCdrEofZip64();
             yield $this->addCdrEofLocatorZip64();
         }
@@ -109,16 +112,16 @@ final class ZipReader implements ArchiveReader
      *
      * @param ContentInterface $content
      * @param int $method Method of compression to use (defaults to store).
-     * @return string
+     * @return \SplTempFileObject
      */
-    private function initializeResourceStream(ContentInterface $content, $method)
+    private function initializeResourceStream(ContentInterface $content, int $method): \SplTempFileObject
     {
         $algorithm = 'crc32b';
 
         // calculate header attributes
-        $this->len = gmp_init(0);
-        $this->zlen = gmp_init(0);
-        $this->hash_ctx = hash_init($algorithm);
+        $this->len = \gmp_init(0);
+        $this->zlen = \gmp_init(0);
+        $this->hash_ctx = \hash_init($algorithm);
 
         // Send file header
         return $this->sendFileHeader($content, $method);
@@ -129,19 +132,19 @@ final class ZipReader implements ArchiveReader
      *
      * @param ContentInterface $content
      * @param int $method Method of compression to use.
-     * @return string
+     * @return \SplTempFileObject
      */
-    private function sendFileHeader(ContentInterface $content, $method)
+    private function sendFileHeader(ContentInterface $content, int $method): \SplTempFileObject
     {
         $name = $content->getName();
-        if ($content->getType() === ContentInterface::DIRECTORY && substr($name, -1) !== '/') {
+        if ($content->getType() === ContentInterface::DIRECTORY && \substr($name, -1) !== '/') {
             $name = $name . '/';
         }
 
         // strip leading slashes from file name
         // (fixes bug in windows archive viewer)
-        $name = preg_replace('/^\\/+/', '', $name);
-        $extra = pack('vvVVVV', 1, 0x10, 0, 0, 0, 0);
+        $name = (string)\preg_replace('/^\\/+/', '', $name);
+        $extra = \pack('vvVVVV', 1, 0x10, 0, 0, 0, 0);
 
         // create dos timestamp
         $dts = PackHelper::dostime($content->getModifiedAt());
@@ -158,7 +161,7 @@ final class ZipReader implements ArchiveReader
             $genb |= 0x0800;
         }
 
-        $num = count($this->files);
+        $num = \count($this->files);
         $num = $num > 0xFFFF ? 0xFFFF : $num;
 
         // build file header
@@ -171,8 +174,8 @@ final class ZipReader implements ArchiveReader
             ['V', 0x00],           // crc32 of data (0x00 because bit 3 set in $genb)
             ['V', 0xFFFFFFFF],     // compressed data length
             ['V', 0xFFFFFFFF],     // uncompressed data length
-            ['v', strlen($name)],  // filename length
-            ['v', strlen($extra)], // extra data len
+            ['v', \strlen($name)],  // filename length
+            ['v', \strlen($extra)], // extra data len
         ];
 
         // pack fields and calculate "total" length
@@ -183,9 +186,9 @@ final class ZipReader implements ArchiveReader
             $name,
             $method,
             // 2-4 will be filled in by complete_file_stream()
-            5 => (strlen($ret) + strlen($name) + strlen($extra)),
+            5 => (\strlen($ret) + \strlen($name) + \strlen($extra)),
             6 => $genb,
-            7 => substr($name, -1) == '/' ? 0x10 : 0x20, // 0x10 for directory, 0x20 for file
+            7 => \substr($name, -1) == '/' ? 0x10 : 0x20, // 0x10 for directory, 0x20 for file
         ];
 
         $stream = new \SplTempFileObject();
@@ -195,15 +198,15 @@ final class ZipReader implements ArchiveReader
     }
 
     /**
-     * @param $data
+     * @param string $data
      * @return \SplTempFileObject
      */
-    private function streamResourceData($data)
+    private function streamResourceData(string $data): \SplTempFileObject
     {
-        $this->len = gmp_add(gmp_init(strlen($data)), $this->len);
-        hash_update($this->hash_ctx, $data);
+        $this->len = \gmp_add(\gmp_init(\strlen($data)), $this->len);
+        \hash_update($this->hash_ctx, $data);
 
-        $this->zlen = gmp_add(gmp_init(strlen($data)), $this->zlen);
+        $this->zlen = \gmp_add(\gmp_init(\strlen($data)), $this->zlen);
 
         $stream = new \SplTempFileObject();
         $stream->fwrite($data);
@@ -214,9 +217,9 @@ final class ZipReader implements ArchiveReader
     /**
      * @return \SplTempFileObject
      */
-    private function completeResourceStream()
+    private function completeResourceStream(): \SplTempFileObject
     {
-        $crc = hexdec(hash_final($this->hash_ctx));
+        $crc = \hexdec(\hash_final($this->hash_ctx));
 
         // convert the 64 bit ints to 2 32bit ints
         list($zlen_low, $zlen_high) = PackHelper::int64Split($this->zlen);
@@ -237,10 +240,10 @@ final class ZipReader implements ArchiveReader
 
         // Update cdr for file record
         $this->current_file_stream[2] = $crc;
-        $this->current_file_stream[3] = gmp_strval($this->zlen);
-        $this->current_file_stream[4] = gmp_strval($this->len);
-        $this->current_file_stream[5] += gmp_strval(gmp_add(gmp_init(strlen($data)), $this->zlen));
-        ksort($this->current_file_stream);
+        $this->current_file_stream[3] = \gmp_strval($this->zlen);
+        $this->current_file_stream[4] = \gmp_strval($this->len);
+        $this->current_file_stream[5] += \gmp_strval(\gmp_add(\gmp_init(\strlen($data)), $this->zlen));
+        \ksort($this->current_file_stream);
 
         // Add to cdr and increment offset - can't call directly because we pass an array of params
         $this->addToCdr(...$this->current_file_stream);
@@ -256,15 +259,15 @@ final class ZipReader implements ArchiveReader
      *
      * @param string $name Path / name of the file.
      * @param int $method Method of compression to use.
-     * @param string $crc Computed checksum of the file.
-     * @param int $zlen Compressed size.
-     * @param int $len Uncompressed size.
+     * @param int $crc Computed checksum of the file.
+     * @param string $zlen Compressed size.
+     * @param string $len Uncompressed size.
      * @param int $rec_len Size of the record.
      * @param int $genb General purpose bit flag.
      * @param int $fattr File attribute bit flag.
      * @return void
      */
-    private function addToCdr($name, $method, $crc, $zlen, $len, $rec_len, $genb = 0, $fattr = 0x20)
+    private function addToCdr(string $name, int $method, int $crc, string $zlen, string $len, int $rec_len, int $genb = 0, int $fattr = 0x20)
     {
         $this->files[] = [$name, $method, $crc, $zlen, $len, $this->cdr_ofs, $genb, $fattr];
         $this->cdr_ofs += $rec_len;
@@ -274,10 +277,10 @@ final class ZipReader implements ArchiveReader
      * Send CDR record for specified file (Zip64 format).
      *
      * @see add_to_cdr() for options to pass in $args.
-     * @param array $args Array of argumentss.
+     * @param array<int, mixed> $args Array of argumentss.
      * @return \SplTempFileObject
      */
-    private function addCdrFile(array $args)
+    private function addCdrFile(array $args): \SplTempFileObject
     {
         list($name, $meth, $crc, $zlen, $len, $ofs, $genb, $file_attribute) = $args;
 
@@ -289,24 +292,24 @@ final class ZipReader implements ArchiveReader
         // ZIP64, necessary for files over 4GB (incl. entire archive size)
         $extra_zip64 = '';
         if ($len == 0xFFFFFFFF) {
-            $extra_zip64 .= pack('VV', $len_low, $len_high);
+            $extra_zip64 .= \pack('VV', $len_low, $len_high);
         }
 
         if ($zlen == 0xFFFFFFFF) {
-            $extra_zip64 .= pack('VV', $zlen_low, $zlen_high);
+            $extra_zip64 .= \pack('VV', $zlen_low, $zlen_high);
         }
         if ($ofs == 0xFFFFFFFF) {
-            $extra_zip64 .= pack('VV', $ofs_low, $ofs_high);
+            $extra_zip64 .= \pack('VV', $ofs_low, $ofs_high);
         }
 
 
         if (!empty($extra_zip64)) {
-            $extra = pack('vv', 1, strlen($extra_zip64)) . $extra_zip64;
+            $extra = \pack('vv', 1, \strlen($extra_zip64)) . $extra_zip64;
         } else {
             $extra = '';
         }
 
-        $extra = pack('vv', 1, strlen($extra_zip64)) . $extra_zip64;
+        $extra = \pack('vv', 1, \strlen($extra_zip64)) . $extra_zip64;
 
         // get attributes
         $comment = $this->archive->getComment();
@@ -324,9 +327,9 @@ final class ZipReader implements ArchiveReader
             ['V', $crc],                 // crc32 of data
             ['V', $zlen],                // compressed data length (zip64 - look in extra)
             ['V', $len],                 // uncompressed data length (zip64 - look in extra)
-            ['v', strlen($name)],        // filename length
-            ['v', strlen($extra)],       // extra data len
-            ['v', strlen($comment)],     // file comment length
+            ['v', \strlen($name)],        // filename length
+            ['v', \strlen($extra)],       // extra data len
+            ['v', \strlen($comment)],     // file comment length
             ['v', 0],                    // disk number start
             ['v', 0],                    // internal file attributes
             ['V', $file_attribute],      // external file attributes, 0x10 for dir, 0x20 for file
@@ -336,7 +339,7 @@ final class ZipReader implements ArchiveReader
         // pack fields, then append name and comment
         $ret = PackHelper::packFields($fields) . $name . $extra . $comment;
 
-        $this->cdr_len += strlen($ret);
+        $this->cdr_len += \strlen($ret);
 
         $stream = new \SplTempFileObject();
         $stream->fwrite($ret);
@@ -349,9 +352,9 @@ final class ZipReader implements ArchiveReader
      *
      * @return \SplTempFileObject
      */
-    private function addCdrEofZip64()
+    private function addCdrEofZip64(): \SplTempFileObject
     {
-        $num = count($this->files);
+        $num = \count($this->files);
 
         list($num_low, $num_high) = PackHelper::int64Split($num);
         list($cdr_len_low, $cdr_len_high) = PackHelper::int64Split($this->cdr_len);
@@ -387,7 +390,7 @@ final class ZipReader implements ArchiveReader
      *
      * @return \SplTempFileObject
      */
-    private function addCdrEofLocatorZip64()
+    private function addCdrEofLocatorZip64(): \SplTempFileObject
     {
         list($cdr_ofs_low, $cdr_ofs_high) = PackHelper::int64Split($this->cdr_len + $this->cdr_ofs);
 
@@ -413,11 +416,11 @@ final class ZipReader implements ArchiveReader
      *
      * @return \SplTempFileObject
      */
-    private function addCdrEof()
+    private function addCdrEof(): \SplTempFileObject
     {
         $comment = $this->archive->getComment();
 
-        $num = count($this->files);
+        $num = \count($this->files);
         $num = $num > 0xFFFF ? 0xFFFF : $num;
         list($cdr_len_low, $cdr_len_high) = PackHelper::int64Split($this->cdr_len);
         list($cdr_ofs_low, $cdr_ofs_high) = PackHelper::int64Split($this->cdr_ofs);
@@ -432,7 +435,7 @@ final class ZipReader implements ArchiveReader
             ['v', $num],               // number of entries in the cdr (0xFFFF to look in zip64 cdr)
             ['V', $cdr_len],         // cdr size (0xFFFFFFFF to look in zip64 cdr)
             ['V', $cdr_ofs],         // cdr offset (0xFFFFFFFF to look in zip64 cdr)
-            ['v', strlen($comment)],   // zip file comment length
+            ['v', \strlen($comment)],   // zip file comment length
         ];
 
         $ret = PackHelper::packFields($fields) . $comment;
@@ -445,9 +448,9 @@ final class ZipReader implements ArchiveReader
     /**
      * @return void
      */
-    private function clear()
+    private function clear(): void
     {
-        $this->files = array();
+        $this->files = [];
         $this->cdr_ofs = 0;
         $this->cdr_len = 0;
     }

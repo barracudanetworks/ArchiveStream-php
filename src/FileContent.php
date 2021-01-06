@@ -1,35 +1,35 @@
 <?php
+
+declare(strict_types=1);
+
 namespace Genkgo\ArchiveStream;
 
-/**
- * Class StringContent
- * @package Genkgo\ArchiveStream
- */
 final class FileContent implements ContentInterface
 {
     /**
      * @var string
      */
     private $name;
+
     /**
      * @var string
      */
     private $fileName;
 
     /**
-     * @param $name
-     * @param $fileName
+     * @param string $nameInArchive
+     * @param string $sourceFileName
      */
-    public function __construct($name, $fileName)
+    public function __construct(string $nameInArchive, string $sourceFileName)
     {
-        $this->name = $name;
-        $this->fileName = $fileName;
+        $this->name = $nameInArchive;
+        $this->fileName = $sourceFileName;
     }
 
     /**
      * @return string
      */
-    public function getName()
+    public function getName(): string
     {
         return $this->name;
     }
@@ -39,21 +39,26 @@ final class FileContent implements ContentInterface
      */
     public function getData()
     {
-        return fopen($this->fileName, 'r');
+        $resource = \fopen($this->fileName, 'r');
+        if (!$resource) {
+            throw new \UnexpectedValueException('Cannot create resource, cannot open file ' . $this->fileName);
+        }
+
+        return $resource;
     }
 
     /**
      * @return \DateTimeImmutable
      */
-    public function getModifiedAt()
+    public function getModifiedAt(): \DateTimeImmutable
     {
-        return new \DateTimeImmutable('@' . filemtime($this->fileName));
+        return new \DateTimeImmutable('@' . \filemtime($this->fileName));
     }
 
     /**
      * @return int
      */
-    public function getType()
+    public function getType(): int
     {
         return ContentInterface::FILE;
     }
@@ -61,7 +66,7 @@ final class FileContent implements ContentInterface
     /**
      * @return string
      */
-    public function getEncoding()
+    public function getEncoding(): string
     {
         return 'UTF-8';
     }

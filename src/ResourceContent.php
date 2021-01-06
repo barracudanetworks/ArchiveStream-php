@@ -1,26 +1,26 @@
 <?php
+
+declare(strict_types=1);
+
 namespace Genkgo\ArchiveStream;
 
-/**
- * Class ResourceContent
- * @package Genkgo\ArchiveStream
- */
 final class ResourceContent implements ContentInterface
 {
     /**
      * @var string
      */
     private $name;
+
     /**
      * @var resource
      */
     private $resource;
 
     /**
-     * @param $name
-     * @param $resource
+     * @param string $name
+     * @param resource $resource
      */
-    public function __construct($name, $resource)
+    public function __construct(string $name, $resource)
     {
         $this->name = $name;
         $this->resource = $resource;
@@ -29,7 +29,7 @@ final class ResourceContent implements ContentInterface
     /**
      * @return string
      */
-    public function getName()
+    public function getName(): string
     {
         return $this->name;
     }
@@ -45,7 +45,7 @@ final class ResourceContent implements ContentInterface
     /**
      * @return \DateTimeImmutable
      */
-    public function getModifiedAt()
+    public function getModifiedAt(): \DateTimeImmutable
     {
         return new \DateTimeImmutable();
     }
@@ -53,7 +53,7 @@ final class ResourceContent implements ContentInterface
     /**
      * @return int
      */
-    public function getType()
+    public function getType(): int
     {
         return ContentInterface::FILE;
     }
@@ -61,7 +61,7 @@ final class ResourceContent implements ContentInterface
     /**
      * @return string
      */
-    public function getEncoding()
+    public function getEncoding(): string
     {
         return 'UTF-8';
     }

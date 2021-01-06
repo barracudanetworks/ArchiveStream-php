@@ -1,11 +1,14 @@
 <?php
-namespace Genkgo\ArchiveStream\Integration;
 
-use Genkgo\ArchiveStream\AbstractTestCase;
+declare(strict_types=1);
+
+namespace Genkgo\TestArchiveStream\Integration;
+
 use Genkgo\ArchiveStream\Archive;
 use Genkgo\ArchiveStream\EmptyDirectory;
 use Genkgo\ArchiveStream\StringContent;
 use Genkgo\ArchiveStream\ZipReader;
+use Genkgo\TestArchiveStream\AbstractTestCase;
 
 final class ZipStreamTest extends AbstractTestCase
 {
@@ -13,18 +16,18 @@ final class ZipStreamTest extends AbstractTestCase
     {
         $archive = (new Archive())->withContent(new StringContent('test.txt', 'content'));
 
-        $filename = tempnam(sys_get_temp_dir(), 'zip');
-        $fileStream = fopen($filename, 'r+');
+        $filename = \tempnam(\sys_get_temp_dir(), 'zip');
+        $fileStream = \fopen($filename, 'r+');
 
         $zipStream = new ZipReader($archive);
         $generator = $zipStream->read(1048576);
         foreach ($generator as $stream) {
             while ($stream->eof() === false) {
                 $data = $stream->fread(9999);
-                fwrite($fileStream, $data);
+                \fwrite($fileStream, $data);
             }
         }
-        fclose($fileStream);
+        \fclose($fileStream);
 
         $zip = new \ZipArchive();
         $result = $zip->open($filename);
@@ -39,18 +42,18 @@ final class ZipStreamTest extends AbstractTestCase
     {
         $archive = (new Archive())->withContent(new EmptyDirectory('empty'));
 
-        $filename = tempnam(sys_get_temp_dir(), 'zip');
-        $fileStream = fopen($filename, 'r+');
+        $filename = \tempnam(\sys_get_temp_dir(), 'zip');
+        $fileStream = \fopen($filename, 'r+');
 
         $zipStream = new ZipReader($archive);
         $generator = $zipStream->read(1048576);
         foreach ($generator as $stream) {
             while ($stream->eof() === false) {
                 $data = $stream->fread(9999);
-                fwrite($fileStream, $data);
+                \fwrite($fileStream, $data);
             }
         }
-        fclose($fileStream);
+        \fclose($fileStream);
 
         $zip = new \ZipArchive();
         $result = $zip->open($filename);
@@ -66,18 +69,18 @@ final class ZipStreamTest extends AbstractTestCase
             ->withContent(new EmptyDirectory('directory'))
             ->withContent(new StringContent('other/file.txt', 'data'));
 
-        $filename = tempnam(sys_get_temp_dir(), 'zip');
-        $fileStream = fopen($filename, 'r+');
+        $filename = \tempnam(\sys_get_temp_dir(), 'zip');
+        $fileStream = \fopen($filename, 'r+');
 
         $zipStream = new ZipReader($archive);
         $generator = $zipStream->read(1048576);
         foreach ($generator as $stream) {
             while ($stream->eof() === false) {
                 $data = $stream->fread(9999);
-                fwrite($fileStream, $data);
+                \fwrite($fileStream, $data);
             }
         }
-        fclose($fileStream);
+        \fclose($fileStream);
 
         $zip = new \ZipArchive();
         $result = $zip->open($filename);
