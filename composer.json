@@ -6,7 +6,7 @@
     "homepage": "https://github.com/barracudanetworks/ArchiveStream-php",
     "license": "MIT",
     "require": {
-        "php": ">=5.1.2",
+        "php": ">=5.3.2",
         "ext-gmp": "*",
         "ext-mbstring": "*"
     },
